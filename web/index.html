@@ -1,232 +1,269 @@
 <title>Sales App</title>
-<meta name="description" content="Upload your sales, set a budget, and see how many euros and units to put on each category and article.">
+<meta name="description" content="Load your sales, pick a budget and time frame, and see euros per category and units per article, in 3D.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
 <style>
-/* Layout: one column, three numbered steps (data → plan → what to buy). Results sit on a
-   raised sheet; money is set in mono, headings in a compressed grotesque. */
+/* Layout: a night "buying desk". A 3D stage shows the plan as towers (one per category, one
+   block per article); controls and results sit on glass panels below. One committed dark look. */
 :root {
-  --bg: #f4f3fa; --surface: #ffffff; --sunk: #eceaf6; --ink: #1b1838; --muted: #5f5b7a; --line: #dfdcec;
-  --accent: #4b3fd6; --accent-ink: #ffffff; --accent-soft: #e9e6fd; --good: #0b7a3e; --good-soft: #e3f4ea; --warn: #b3261e; --warn-soft: #fbe7e5;
-  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100; --c5: #e87ba4; --c6: #008300;
-  --display: "Bricolage Grotesque", "Avenir Next Condensed", "Arial Narrow", system-ui, sans-serif;
+  color-scheme: dark;
+  --bg: #0d0a1e; --bg2: #15102b; --glass: rgba(255, 255, 255, .055); --glass-2: rgba(255, 255, 255, .09);
+  --edge: rgba(255, 255, 255, .12); --ink: #f5f2ff; --muted: #b0a8d4; --faint: #7d74a6;
+  --violet: #8f7bff; --coral: #ff8a5c; --good: #6fe0a6; --warn: #ffb4a6; --on-coral: #1d0f08;
+  --display: "Unbounded", "Arial Black", system-ui, sans-serif;
   --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-  --shadow: 0 1px 2px rgba(27, 24, 56, .06), 0 8px 24px rgba(27, 24, 56, .06);
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #111021; --surface: #1b1a2f; --sunk: #232139; --ink: #f1effa; --muted: #a8a3c5; --line: #2f2c48;
-  --accent: #9d93f0; --accent-ink: #14112b; --accent-soft: #2b2752; --good: #6fd49b; --good-soft: #173526; --warn: #ffb4ab; --warn-soft: #3d1f1d;
-  --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #008300; --shadow: none; color-scheme: dark } }
-:root[data-theme="dark"] {
-  --bg: #111021; --surface: #1b1a2f; --sunk: #232139; --ink: #f1effa; --muted: #a8a3c5; --line: #2f2c48;
-  --accent: #9d93f0; --accent-ink: #14112b; --accent-soft: #2b2752; --good: #6fd49b; --good-soft: #173526; --warn: #ffb4ab; --warn-soft: #3d1f1d;
-  --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #008300; --shadow: none; color-scheme: dark }
 * { box-sizing: border-box }
-body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body) }
-.wrap { max-width: 1040px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 64px; display: grid; gap: 28px }
-h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; letter-spacing: -.015em }
-.num, td.n, th.n { font-family: var(--mono); font-variant-numeric: tabular-nums }
-.muted { color: var(--muted) }
-.small { font-size: 13px }
-button, input, select { font: inherit; color: inherit }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+html { background: var(--bg) }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body); min-height: 100% }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(60vw 50vw at 10% -10%, rgba(143, 123, 255, .28), transparent 60%),
+              radial-gradient(50vw 40vw at 100% 30%, rgba(255, 138, 92, .16), transparent 60%),
+              radial-gradient(40vw 40vw at 30% 110%, rgba(57, 135, 229, .14), transparent 60%) }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 14px 72px; display: grid; gap: 22px }
+h1, h2, h3 { font-family: var(--display); margin: 0; letter-spacing: -.02em; text-wrap: balance }
+button, input { font: inherit; color: inherit }
+:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums }
+.muted { color: var(--muted) } .small { font-size: 13px }
+.glass { background: var(--glass); border: 1px solid var(--edge); border-radius: 20px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px) }
+.eyebrow { font: 600 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--coral); margin: 0 }
 
-/* hero */
-.hero { display: grid; gap: 10px }
-.brand { display: flex; align-items: center; gap: 10px }
-.mark { width: 34px; height: 34px; border-radius: 9px; background: var(--accent); display: flex; align-items: flex-end; justify-content: center; gap: 3px; padding: 7px }
-.mark i { width: 5px; border-radius: 2px 2px 0 0; background: var(--accent-ink) }
-.mark i:nth-child(1) { height: 8px } .mark i:nth-child(2) { height: 13px } .mark i:nth-child(3) { height: 20px }
-.brand b { font: 800 20px var(--display) }
-.hero h1 { font-size: clamp(28px, 5vw, 44px); font-weight: 800; line-height: 1.05; max-width: 20ch }
-.hero p { margin: 0; max-width: 62ch; color: var(--muted); font-size: 16px }
-.flow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px }
-.flow span { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border-radius: 99px; background: var(--surface); border: 1px solid var(--line); font-weight: 600; font-size: 14px }
-.flow span i { font: 600 12px var(--mono); font-style: normal; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink) }
+/* top bar */
+.top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap }
+.logo { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(145deg, var(--violet), var(--coral)); display: flex; align-items: flex-end; justify-content: center; gap: 3px; padding: 7px; box-shadow: 0 6px 24px rgba(143, 123, 255, .4) }
+.logo i { width: 5px; border-radius: 2px 2px 0 0; background: #fff }
+.logo i:nth-child(1) { height: 8px } .logo i:nth-child(2) { height: 13px } .logo i:nth-child(3) { height: 20px }
+.top b { font: 700 16px var(--display) }
+.top .sp { flex: 1 }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 99px; background: var(--glass-2); border: 1px solid var(--edge); color: var(--muted); white-space: nowrap }
+.pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint) }
+.pill.live .dot { background: var(--good); box-shadow: 0 0 8px var(--good) }
+.btn { border: 0; border-radius: 12px; padding: 10px 16px; font-weight: 700; background: var(--coral); color: var(--on-coral); cursor: pointer; transition: transform .15s, box-shadow .15s }
+.btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(255, 138, 92, .35) }
+.btn.ghost { background: var(--glass-2); color: var(--ink); border: 1px solid var(--edge) }
+.btn.ghost:hover { box-shadow: none; border-color: var(--violet) }
 
-/* steps */
-.step { display: grid; gap: 14px }
-.step-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap }
-.step-head .no { font: 600 13px var(--mono); color: var(--accent); background: var(--accent-soft); padding: 2px 8px; border-radius: 6px }
-.step-head h2 { font-size: 24px; font-weight: 800 }
-.step-head p { margin: 0; color: var(--muted); flex-basis: 100% }
-.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px }
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 10px; min-width: 0 }
-.drop { border: 1.5px dashed var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 8px; cursor: pointer; transition: border-color .15s, background .15s }
-.drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft) }
+/* hero + 3D stage */
+.hero { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 18px; align-items: stretch }
+@media (max-width: 860px) { .hero { grid-template-columns: 1fr } }
+.hero-copy { display: grid; gap: 14px; align-content: center; padding-block: 8px }
+.hero h1 { font-size: clamp(30px, 4.4vw, 50px); font-weight: 800; line-height: 1.02 }
+.hero h1 .into { display: block; font: 500 15px var(--body); color: var(--muted); letter-spacing: 0; margin: 6px 0 4px }
+.hero h1 .units { background: linear-gradient(90deg, var(--coral), var(--violet)); -webkit-background-clip: text; background-clip: text; color: transparent }
+.hero-copy p.lead { margin: 0; color: var(--muted); max-width: 46ch; font-size: 16px }
+.steps { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none }
+.steps a { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border-radius: 99px; background: var(--glass); border: 1px solid var(--edge); color: var(--ink); text-decoration: none; font-weight: 600; font-size: 14px }
+.steps a:hover { border-color: var(--violet) }
+.steps i { font: 600 11px var(--mono); font-style: normal; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--violet); color: #fff }
+.stage { position: relative; min-height: 420px; overflow: hidden; padding: 0 }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; cursor: grab }
+.stage canvas:active { cursor: grabbing }
+@media (max-width: 560px) { .stage .hint { display: none } }
+.labels { position: absolute; inset: 0; pointer-events: none }
+.labels div { position: absolute; transform: translate(-50%, -100%); text-align: center; white-space: nowrap; padding-bottom: 6px; transition: opacity .2s }
+.labels b { display: block; font: 600 13px var(--mono) }
+.labels span { font-size: 11px; color: var(--muted); font-weight: 600 }
+.stage .hint { position: absolute; left: 14px; top: 12px; right: 14px; margin: 0; font-size: 12px; color: var(--faint) }
+.stage .legend { position: absolute; left: 12px; right: 12px; bottom: 10px; display: flex; flex-wrap: wrap; gap: 4px 12px; justify-content: center; font-size: 12px; color: var(--muted) }
+.legend span { display: inline-flex; align-items: center; gap: 5px }
+.sw { width: 10px; height: 10px; border-radius: 3px; flex: none }
+.flat { position: absolute; inset: 20px 16px 48px; display: grid; align-content: end; gap: 10px }
+.flat .bars { display: flex; align-items: flex-end; gap: 10px; height: 100% }
+.flat .bars div { flex: 1; border-radius: 8px 8px 3px 3px; min-height: 4px }
+
+/* sections */
+.sec { display: grid; gap: 12px }
+.sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap }
+.sec-head .no { font: 600 12px var(--mono); color: var(--bg); background: var(--violet); padding: 2px 8px; border-radius: 6px }
+.sec-head h2 { font-size: 20px; font-weight: 700 }
+.sec-head p { margin: 0; color: var(--muted); flex-basis: 100% }
+
+/* data */
+.data { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px }
+.drop { position: relative; padding: 16px; display: grid; gap: 8px; cursor: pointer; transition: border-color .15s, background .15s; border-style: dashed }
+.drop:hover, .drop.over { border-color: var(--coral); background: rgba(255, 138, 92, .08) }
 .drop input { position: absolute; width: 1px; height: 1px; opacity: 0 }
-.drop .t { font-weight: 700; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap }
-.drop code { font: 12px/1.5 var(--mono); color: var(--muted); word-break: break-word }
-.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 99px; background: var(--sunk); color: var(--muted); white-space: nowrap }
-.chip.ok { background: var(--good-soft); color: var(--good) }
-.chip.warn { background: var(--warn-soft); color: var(--warn) }
-.chip.top { background: var(--accent-soft); color: var(--accent) }
-.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap }
-.btn { border: 0; border-radius: 10px; padding: 10px 14px; font-weight: 700; background: var(--accent); color: var(--accent-ink); cursor: pointer }
-.btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line) }
-.msg { margin: 0; font-size: 14px; color: var(--good) }
-.msg.bad { color: var(--warn) }
+.drop .t { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 700; font-size: 16px }
+.drop code { font: 12px/1.5 var(--mono); color: var(--ink); background: var(--glass-2); padding: 1px 6px; border-radius: 6px }
+.msg { margin: 0; font-size: 14px; color: var(--good) } .msg.bad { color: var(--warn) }
 
-/* parameters */
-.params { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px }
-.param { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 6px; min-width: 0 }
-.param label { font-weight: 700; font-size: 14px }
-.presets { display: flex; flex-wrap: wrap; gap: 6px }
-.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 4px 10px; font-size: 13px; font-weight: 600; cursor: pointer }
-.presets button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent) }
-.acc { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px }
-.acc > div { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 2px; min-width: 0 }
-.acc b { font: 600 24px var(--mono); letter-spacing: -.02em }
-.param .val { font: 600 24px var(--mono); letter-spacing: -.02em }
-.param input[type="range"] { width: 100%; accent-color: var(--accent) }
-.money { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 10px; padding: 4px 10px; background: var(--sunk) }
-.money span { font: 600 20px var(--mono); color: var(--muted) }
-.money input { border: 0; background: transparent; font: 600 24px var(--mono); width: 100%; min-width: 0; padding: 2px 0 }
+/* controls */
+.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px }
+.ctl { padding: 16px; display: grid; gap: 8px; align-content: start; min-width: 0 }
+.ctl label { font-weight: 700; font-size: 14px }
+.ctl .big { font: 700 26px var(--display); letter-spacing: -.02em }
+.money { display: flex; align-items: center; gap: 6px; border-bottom: 2px solid var(--edge); padding-bottom: 2px }
+.money:focus-within { border-color: var(--coral) }
+.money span { font: 700 22px var(--display); color: var(--muted) }
+.money input { border: 0; background: transparent; font: 700 26px var(--display); letter-spacing: -.02em; width: 100%; min-width: 0; padding: 0 }
 .money input:focus { outline: none }
-.money:focus-within { outline: 2px solid var(--accent); outline-offset: 1px }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--violet) var(--p, 50%), var(--glass-2) var(--p, 50%)); outline-offset: 6px }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--ink); border: 4px solid var(--violet); cursor: pointer }
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--ink); border: 4px solid var(--violet); cursor: pointer }
+.presets { display: flex; flex-wrap: wrap; gap: 6px }
+.presets button { border: 1px solid var(--edge); background: var(--glass); border-radius: 99px; padding: 4px 11px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--muted) }
+.presets button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink) }
 
 /* results */
-.sheet { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 18px; display: grid; gap: 22px; min-width: 0 }
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px }
-.kpi { background: var(--sunk); border-radius: 12px; padding: 12px 14px; display: grid; gap: 2px; min-width: 0 }
-.kpi b { font: 600 clamp(20px, 3vw, 26px) var(--mono); letter-spacing: -.02em }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px }
+.kpi { padding: 14px 16px; display: grid; gap: 2px; min-width: 0 }
+.kpi b { font: 700 clamp(20px, 2.6vw, 26px) var(--display); letter-spacing: -.02em }
 .kpi span { font-size: 13px; color: var(--muted) }
-.sheet h3 { font-size: 18px; font-weight: 800 }
-.stack { display: flex; gap: 2px; height: 40px; border-radius: 8px; overflow: hidden; background: var(--sunk) }
-.stack div { height: 100%; min-width: 2px; cursor: default; transition: filter .15s }
-.stack div:hover { filter: brightness(1.12) }
-.cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px }
-.cat { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 4px; min-width: 0; text-align: left; background: var(--surface); cursor: pointer }
-.cat[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent) }
+.rings { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px }
+.ring { padding: 16px; display: grid; grid-template-columns: 92px 1fr; gap: 14px; align-items: center; min-width: 0 }
+.ring svg { width: 92px; height: 92px; transform: rotate(-90deg) }
+.ring .track { stroke: var(--glass-2) } .ring .val { stroke-linecap: round; transition: stroke-dashoffset .8s cubic-bezier(.2, .8, .2, 1) }
+.ring .pct { font: 700 22px var(--display); letter-spacing: -.02em; display: block }
+.ring p { margin: 2px 0 0; font-size: 13px; color: var(--muted) }
+.ring.tip { grid-template-columns: 1fr }
+.cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px }
+.cat { padding: 14px; display: grid; gap: 6px; text-align: left; cursor: pointer; min-width: 0; transition: border-color .15s, transform .15s }
+.cat:hover { transform: translateY(-2px) }
+.cat[aria-pressed="true"] { border-color: var(--ink) }
 .cat .name { display: flex; align-items: center; gap: 8px; font-weight: 700 }
-.dot { width: 10px; height: 10px; border-radius: 3px; flex: none }
-.cat .eur { font: 600 22px var(--mono); letter-spacing: -.02em }
-.bar { height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden }
-.bar i { display: block; height: 100% }
+.cat .eur { font: 700 24px var(--display); letter-spacing: -.02em }
+.meter { height: 6px; border-radius: 3px; background: var(--glass-2); overflow: hidden } .meter i { display: block; height: 100% }
 .tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
-.tools input[type="search"] { flex: 1; min-width: 180px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface) }
-.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px }
-table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 760px }
-th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top }
-th { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; background: var(--sunk); position: sticky; top: 0 }
-td.n, th.n { text-align: right; white-space: nowrap }
+.tools input[type="search"] { flex: 1; min-width: 180px; padding: 10px 14px; border: 1px solid var(--edge); border-radius: 12px; background: var(--glass) }
+.tablewrap { overflow-x: auto; padding: 0 }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 780px }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--edge); vertical-align: top }
+th { font: 600 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--faint) }
+td.n, th.n { text-align: right; white-space: nowrap; font-family: var(--mono); font-variant-numeric: tabular-nums }
 tr:last-child td { border-bottom: 0 }
-td .an { font-weight: 600 }
-td .why { font-size: 12px; color: var(--muted) }
-td.buy { font-weight: 700 }
-tr.zero td { color: var(--muted) }
-details.how { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px }
-details.how summary { cursor: pointer; font: 800 18px var(--display) }
-details.how ol { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 8px; max-width: 70ch }
-.tip { position: fixed; pointer-events: none; z-index: 20; background: var(--ink); color: var(--bg); font-size: 13px; padding: 6px 9px; border-radius: 8px; max-width: 240px }
-pre.csv { margin: 0; padding: 12px; background: var(--sunk); border-radius: 10px; font: 12px/1.5 var(--mono); overflow: auto; max-height: 200px }
+tbody tr:hover td { background: rgba(255, 255, 255, .03) }
+td .an { font-weight: 600 } td .why { font-size: 12px; color: var(--muted) }
+td.buy { font-weight: 700; color: var(--ink) } tr.zero td { color: var(--faint) }
+.tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; margin-left: 6px; vertical-align: 1px }
+.tag.top { background: rgba(255, 138, 92, .18); color: var(--coral) } .tag.new { background: rgba(143, 123, 255, .2); color: #c9c0ff } .tag.slow { background: var(--glass-2); color: var(--muted) }
+details.how { padding: 16px 18px }
+details.how summary { cursor: pointer; font: 700 16px var(--display) }
+details.how ol { margin: 12px 0 0; padding-left: 20px; display: grid; gap: 8px; max-width: 72ch; color: var(--muted) }
+details.how b { color: var(--ink) }
+.tip3d { position: fixed; pointer-events: none; z-index: 20; background: var(--ink); color: var(--bg); font-size: 13px; padding: 7px 10px; border-radius: 10px; max-width: 260px; box-shadow: 0 8px 24px rgba(0, 0, 0, .4) }
+.tip3d b { display: block }
+pre.csv { margin: 0; padding: 12px; font: 12px/1.5 var(--mono); overflow: auto; max-height: 200px }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important } }
 </style>
 
 <div class="wrap">
-  <header class="hero">
-    <div class="brand"><div class="mark" aria-hidden="true"><i></i><i></i><i></i></div><b>Sales App</b></div>
-    <h1>Load your sales. Pick a budget and time frame. See what to buy.</h1>
-    <p>The app finds your top sellers, compares new articles with similar ones, checks sell-through, and splits your budget into euros per category and units per article.</p>
-    <div class="flow"><span><i>1</i>Your data</span><span><i>2</i>Your plan</span><span><i>3</i>What to buy</span></div>
+  <header class="top">
+    <div class="logo" aria-hidden="true"><i></i><i></i><i></i></div><b>Sales App</b>
+    <span class="sp"></span>
+    <span class="pill" id="datapill"><span class="dot"></span><span id="datatext"></span></span>
+    <a class="btn" href="#data" style="text-decoration:none">Load your sales</a>
   </header>
 
-  <section class="step" aria-labelledby="s1">
-    <div class="step-head"><span class="no">1</span><h2 id="s1">Your data</h2><p>One sales file is enough. Until you load yours, the app shows a sample sports shop.</p></div>
-    <div class="grid2">
-      <label class="drop" id="drop-sales" for="f-sales">
-        <input type="file" id="f-sales" accept=".csv,.txt,text/csv">
-        <span class="t">Sales file <span class="chip" id="st-sales"></span></span>
-        <span class="small"><b>Needed:</b> <code>date, article_id, units</code></span>
-        <span class="small"><b>Better with:</b> <code>name, category, price, cost, stock</code></span>
-        <span class="small muted">One row per article per day or week. A year of history gives the best forecasts.</span>
-      </label>
-      <label class="drop" id="drop-articles" for="f-articles">
-        <input type="file" id="f-articles" accept=".csv,.txt,text/csv">
-        <span class="t">Articles file <span class="chip" id="st-articles"></span></span>
-        <span class="small"><b>Optional:</b> <code>article_id, name, category, price, cost, stock, brand, color</code></span>
-        <span class="small muted">Use it for current stock and for new articles that have no sales yet.</span>
-      </label>
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow" id="h-eyebrow"></p>
+      <h1><span id="h-eur"></span><span class="into">buys</span><span class="units" id="h-units"></span></h1>
+      <p class="lead" id="h-lead"></p>
+      <ol class="steps">
+        <li><a href="#data"><i>1</i>Load sales</a></li>
+        <li><a href="#plan"><i>2</i>Set your plan</a></li>
+        <li><a href="#buy"><i>3</i>See what to buy</a></li>
+      </ol>
     </div>
-    <div class="row"><p class="msg" id="loadmsg" hidden></p><button class="btn ghost" id="use-sample" hidden>Go back to sample data</button></div>
+    <div class="stage glass" id="stage" role="img" aria-label="3D view of the plan">
+      <canvas id="scene"></canvas>
+      <div class="labels" id="labels"></div>
+      <div class="flat" id="flat" hidden></div>
+      <p class="hint" id="hint">Drag to turn · point at a block to see the article · tap a tower to filter the list</p>
+      <div class="legend" id="legend"></div>
+    </div>
   </section>
 
-  <section class="step" aria-labelledby="s2">
-    <div class="step-head"><span class="no">2</span><h2 id="s2">Your plan</h2><p>Change any number and the plan below updates straight away.</p></div>
-    <div class="params">
-      <div class="param">
-        <label for="p-budget">Budget to spend (at cost)</label>
+  <section class="sec" id="data">
+    <div class="sec-head"><span class="no">1</span><h2>Your data</h2><p>One CSV sales file is enough. Until you load yours, the app shows a sample sports shop.</p></div>
+    <div class="data">
+      <label class="drop glass" id="drop-sales" for="f-sales">
+        <input type="file" id="f-sales" accept=".csv,.txt,text/csv">
+        <span class="t">Sales file <span class="pill" id="st-sales"></span></span>
+        <span class="small"><b>Needed:</b> <code>date</code> <code>article_id</code> <code>units</code></span>
+        <span class="small"><b>Better with:</b> <code>name</code> <code>category</code> <code>price</code> <code>cost</code> <code>stock</code></span>
+        <span class="small muted">One row per article per day or week. A year of history gives the best forecasts. Drop the file here or tap to choose.</span>
+      </label>
+      <label class="drop glass" id="drop-articles" for="f-articles">
+        <input type="file" id="f-articles" accept=".csv,.txt,text/csv">
+        <span class="t">Articles file <span class="pill" id="st-articles"></span></span>
+        <span class="small"><b>Optional:</b> <code>article_id</code> <code>name</code> <code>category</code> <code>price</code> <code>cost</code> <code>stock</code> <code>brand</code> <code>color</code></span>
+        <span class="small muted">For current stock, and for new articles that have not sold yet.</span>
+      </label>
+    </div>
+    <div class="tools"><p class="msg" id="loadmsg" hidden></p><button class="btn ghost" id="use-sample" hidden>Go back to sample data</button></div>
+  </section>
+
+  <section class="sec" id="plan">
+    <div class="sec-head"><span class="no">2</span><h2>Your plan</h2><p>Change anything. The towers and numbers update straight away.</p></div>
+    <div class="controls">
+      <div class="ctl glass">
+        <label for="p-budget">Budget to spend, at cost</label>
         <div class="money"><span>€</span><input id="p-budget" inputmode="numeric" autocomplete="off"></div>
       </div>
-      <div class="param">
+      <div class="ctl glass">
         <label for="p-weeks">Time frame</label>
-        <div class="val"><span id="v-weeks"></span> weeks</div>
+        <div class="big"><span id="v-weeks"></span> <span class="small muted" style="font-family:var(--body)">weeks</span></div>
         <div class="presets" id="presets" role="group" aria-label="Time frame presets">
           <button data-w="2">2 weeks</button><button data-w="4">Month</button><button data-w="8">2 months</button><button data-w="13">Season</button>
         </div>
         <input type="range" id="p-weeks" min="1" max="26" step="1" aria-label="Weeks">
       </div>
-      <div class="param">
+      <div class="ctl glass">
         <label for="p-st">Target sell-through</label>
-        <div class="val" id="v-st"></div>
+        <div class="big" id="v-st"></div>
         <input type="range" id="p-st" min="0.5" max="0.95" step="0.05">
-        <span class="small muted">Share of the stock you want sold by the end.</span>
+        <span class="small muted">Share of your stock you want sold by the end.</span>
       </div>
-      <div class="param">
+      <div class="ctl glass">
         <label for="p-min">Smallest order per article</label>
-        <div class="val"><span id="v-min"></span> units</div>
+        <div class="big"><span id="v-min"></span> <span class="small muted" style="font-family:var(--body)">units</span></div>
         <input type="range" id="p-min" min="0" max="24" step="1">
       </div>
     </div>
   </section>
 
-  <section class="step" aria-labelledby="s3">
-    <div class="step-head"><span class="no">3</span><h2 id="s3">What to buy</h2><p id="s3sub"></p></div>
-    <div class="sheet">
-      <div class="kpis" id="kpis"></div>
-      <div style="display:grid;gap:10px">
-        <h3>How accurate is the forecast?</h3>
-        <p class="small muted" id="accnote" style="margin:0"></p>
-        <div class="acc" id="acc"></div>
-      </div>
-      <div style="display:grid;gap:12px">
-        <h3>Euros per category</h3>
-        <div class="stack" id="stack" role="img"></div>
-        <div class="cats" id="cats"></div>
-      </div>
-      <div style="display:grid;gap:12px">
-        <h3>Units and euros per article</h3>
-        <div class="tools">
-          <input type="search" id="q" placeholder="Search articles" aria-label="Search articles">
-          <button class="btn ghost" id="copy">Copy plan as CSV</button>
-        </div>
-        <p class="msg" id="copymsg" hidden></p>
-        <div class="tablewrap"><table>
-          <thead><tr><th>Article</th><th>Category</th><th class="n">Sells / week</th><th class="n">In stock</th><th class="n">Sell-through</th><th class="n">Buy units</th><th class="n">Buy €</th></tr></thead>
-          <tbody id="rows"></tbody>
-        </table></div>
-        <pre class="csv" id="csv" hidden></pre>
-      </div>
+  <section class="sec" id="buy">
+    <div class="sec-head"><span class="no">3</span><h2>What to buy</h2><p id="s3sub"></p></div>
+    <div class="kpis" id="kpis"></div>
+    <h3 style="font-size:16px;margin-top:6px">How accurate is the forecast?</h3>
+    <p class="small muted" id="accnote" style="margin:0"></p>
+    <div class="rings" id="acc"></div>
+    <h3 style="font-size:16px;margin-top:6px">Euros per category</h3>
+    <div class="cats" id="cats"></div>
+    <h3 style="font-size:16px;margin-top:6px">Units and euros per article</h3>
+    <div class="tools">
+      <input type="search" id="q" placeholder="Search articles" aria-label="Search articles">
+      <button class="btn ghost" id="copy">Copy plan as CSV</button>
     </div>
+    <p class="msg" id="copymsg" hidden></p>
+    <div class="tablewrap glass"><table>
+      <thead><tr><th>Article</th><th>Category</th><th class="n">Sells / week</th><th class="n">In stock</th><th class="n">Sell-through</th><th class="n">Buy units</th><th class="n">Buy €</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+    <pre class="csv glass" id="csv" hidden></pre>
   </section>
 
-  <details class="how">
+  <details class="how glass">
     <summary>How the app decides</summary>
     <ol>
-      <li><b>Top sellers.</b> A gradient-boosted tree model (the same idea as XGBoost) learns from your history how many units each article sells next, using recent sales, trend, price, margin, age and how its category is doing.</li>
+      <li><b>Top sellers.</b> A gradient-boosted tree model (the same idea as XGBoost) learns from your history how many units each article sells over your time frame, using recent sales, trend, price, margin, age and how its category is doing.</li>
       <li><b>New articles.</b> Articles without sales get the forecast of their three most similar articles (same category, close price, same brand or colour), reduced by 20% to be careful.</li>
       <li><b>Sell-through.</b> Units sold in the last 8 weeks divided by units sold plus stock now. Categories that sell through faster get a bigger share of the budget.</li>
-      <li><b>Time frame.</b> The model is trained for the time frame you pick (2 weeks, a month, a season), so it learns how sales move over that span.</li>
       <li><b>Euros per category.</b> The budget is split by what each category needs to reach your target sell-through, weighted by its sell-through.</li>
       <li><b>Units per article.</b> Each category's euros go to its articles by need, a little more for top sellers and a little less for slow ones, then are turned into units at cost price.</li>
+      <li><b>Accuracy.</b> The app hides your last weeks of sales, forecasts them from the weeks before, and compares. Whole plan and category numbers are what budgets rest on; single articles always swing more.</li>
     </ol>
-    <p class="small muted">Everything runs in this browser. Your files are not uploaded anywhere.</p>
+    <p class="small muted">Everything runs on your device. Your files are not uploaded anywhere.</p>
   </details>
 </div>
-<div class="tip" id="tip" hidden></div>
+<div class="tip3d" id="tip" hidden></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
+
 "use strict";
 const store = {
   get(k, d) { try { const v = localStorage.getItem("salesapp2." + k); return v == null ? d : JSON.parse(v) } catch (e) { return d } },
@@ -490,15 +527,153 @@ let data = store.get("data", null) || sampleData();
 let prm = Object.assign({ budget: 120000, weeks: 8, st: .8, min: 3 }, store.get("prm", {}));
 let result, filterCat = null, query = "";
 const $ = id => document.getElementById(id);
-const catColor = {}; const slots = ["--c1", "--c2", "--c3", "--c4", "--c5", "--c6"];
-function colorCats() { const names = [...new Set(data.articles.map(a => a.category))].sort(); names.forEach((n, i) => catColor[n] = i < 6 ? `var(${slots[i]})` : "var(--muted)") }
+const reduceMotion = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches } catch (e) { return false } })();
+const PALETTE = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#9085e9"];
+const catColor = {};
+function colorCats() { [...new Set(data.articles.map(a => a.category))].sort().forEach((n, i) => catColor[n] = PALETTE[i] || "#7d74a6") }
 
+// ---------- 3D stage ----------
+const stage3d = (() => {
+  const canvas = $("scene"), wrap = $("stage"), labelsEl = $("labels"), tip = $("tip");
+  const T3 = window.THREE;
+  let ok = false, renderer, scene, camera, group, ray, mouse, blocks = [], labels = [], hovered = null;
+  let theta = -0.32, phi = 1.12, radius = 26, target = null, auto = !reduceMotion, lastTouch = 0, grow = 1, dragging = null;
+  try {
+    if (!T3) throw new Error("no three");
+    renderer = new T3.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    scene = new T3.Scene();
+    scene.fog = new T3.Fog(0x0d0a1e, 30, 70);
+    camera = new T3.PerspectiveCamera(34, 1, 0.1, 200);
+    target = new T3.Vector3(0, 3.6, 0);
+    scene.add(new T3.HemisphereLight(0xd9d2ff, 0x1a1036, 0.85));
+    const sun = new T3.DirectionalLight(0xffffff, 0.85); sun.position.set(9, 16, 7); scene.add(sun);
+    const rim = new T3.PointLight(0xff8a5c, 0.9, 60); rim.position.set(-12, 6, -10); scene.add(rim);
+    const glow = new T3.PointLight(0x8f7bff, 0.8, 60); glow.position.set(12, 4, 12); scene.add(glow);
+    const floor = new T3.Mesh(new T3.CircleGeometry(16, 64), new T3.MeshStandardMaterial({ color: 0x17112f, roughness: 0.95, metalness: 0 }));
+    floor.rotation.x = -Math.PI / 2; floor.position.y = -0.02; scene.add(floor);
+    const grid = new T3.PolarGridHelper(15, 12, 6, 64, 0x3b3170, 0x2a2252); grid.position.y = 0; scene.add(grid);
+    group = new T3.Group(); scene.add(group);
+    ray = new T3.Raycaster(); mouse = new T3.Vector2();
+    ok = true;
+  } catch (e) { ok = false }
+
+  function resize() {
+    if (!ok) return;
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    renderer.setSize(w, h, false); camera.aspect = w / Math.max(1, h); camera.updateProjectionMatrix();
+  }
+  function shade(hex, f) { const c = new T3.Color(hex); c.offsetHSL(0, 0, f); return c }
+
+  function build(R) {
+    const cats = R.cats.filter(c => c.spent > 0).sort((a, b) => a.name.localeCompare(b.name));
+    $("legend").innerHTML = cats.map(c => `<span><i class="sw" style="background:${catColor[c.name]}"></i>${esc(c.name)}</span>`).join("");
+    if (!ok) return flat(cats);
+    for (const b of blocks) { b.geometry.dispose(); b.material.dispose() }
+    group.clear(); blocks = []; labelsEl.innerHTML = ""; labels = [];
+    const n = cats.length, spacing = 3.1, maxSpent = Math.max(...cats.map(c => c.spent), 1), H = 9;
+    const cols = n > 7 ? Math.ceil(n / 2) : n, rows = n > 7 ? 2 : 1;
+    cats.forEach((c, i) => {
+      const col = i % cols, row = Math.floor(i / cols);
+      const x = (col - (cols - 1) / 2) * spacing, z = (row - (rows - 1) / 2) * spacing * 1.15;
+      const arts = c.rows.filter(r => r.buy > 0).sort((a, b) => b.buyEur - a.buyEur);
+      const height = Math.max(0.3, H * c.spent / maxSpent), gap = 0.06;
+      let y = 0;
+      arts.forEach((r, k) => {
+        const h = Math.max(0.05, height * r.buyEur / c.spent - gap);
+        const geo = new T3.BoxGeometry(2.1, 1, 2.1);
+        const mat = new T3.MeshStandardMaterial({ color: shade(catColor[c.name], k % 2 ? -0.04 : 0.03), roughness: 0.45, metalness: 0.15, emissive: 0x000000 });
+        const m = new T3.Mesh(geo, mat);
+        m.userData = { r, c, h, y: y + h / 2, base: mat.color.clone() };
+        m.position.set(x, 0, z); m.scale.y = 0.001;
+        group.add(m); blocks.push(m);
+        y += h + gap;
+      });
+      const el = document.createElement("div");
+      el.innerHTML = `<b>${eur(c.spent)}</b><span>${esc(c.name)}</span>`;
+      labelsEl.appendChild(el);
+      labels.push({ el, pos: new T3.Vector3(x, y + 0.4, z) });
+    });
+    radius = 15 + cols * 2.3;
+    grow = reduceMotion ? 1 : 0;
+  }
+
+  function flat(cats) {
+    const f = $("flat"); f.hidden = false; canvas.hidden = true; $("hint").textContent = "3D needs an internet connection the first time; showing flat bars.";
+    const max = Math.max(...cats.map(c => c.spent), 1);
+    f.innerHTML = `<div class="bars">${cats.map(c => `<div title="${esc(c.name)}: ${eur(c.spent)}" style="height:${Math.max(3, c.spent / max * 100)}%;background:${catColor[c.name]}"></div>`).join("")}</div>`;
+  }
+
+  function place() {
+    const s = Math.sin(phi), R = radius * Math.max(1, 1.35 / camera.aspect);
+    camera.position.set(target.x + R * s * Math.sin(theta), target.y + R * Math.cos(phi), target.z + R * s * Math.cos(theta));
+    camera.lookAt(target);
+  }
+  function frame() {
+    if (auto && !dragging && performance.now() - lastTouch > 3500) theta += 0.0022;
+    if (grow < 1) grow = Math.min(1, grow + 0.025);
+    const e = 1 - Math.pow(1 - grow, 3);
+    for (const b of blocks) { b.scale.y = Math.max(0.001, b.userData.h * e); b.position.y = b.userData.y * e }
+    place();
+    renderer.render(scene, camera);
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    for (const l of labels) {
+      const p = l.pos.clone(); p.y *= e; p.project(camera);
+      l.el.style.left = ((p.x + 1) / 2 * w) + "px"; l.el.style.top = ((1 - p.y) / 2 * h) + "px";
+      l.el.style.opacity = p.z < 1 ? String(Math.min(1, e * 1.5)) : "0";
+    }
+    requestAnimationFrame(frame);
+  }
+  function pick(ev) {
+    const r = canvas.getBoundingClientRect();
+    mouse.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(mouse, camera);
+    const hit = ray.intersectObjects(blocks)[0];
+    return hit ? hit.object : null;
+  }
+  function hover(obj, ev) {
+    if (hovered && hovered !== obj) hovered.material.emissive.setHex(0x000000);
+    hovered = obj;
+    if (!obj) { tip.hidden = true; canvas.style.cursor = ""; return }
+    obj.material.emissive.setHex(0x2a2250); canvas.style.cursor = "pointer";
+    const { r, c } = obj.userData;
+    tip.innerHTML = `<b>${esc(r.a.name)}</b>${r.buy} units · ${eur(r.buyEur)}<br><span style="opacity:.7">${esc(c.name)}${!r.hasHist ? " · new" : r.cls === "A" ? " · top seller" : ""}</span>`;
+    tip.hidden = false;
+    tip.style.left = Math.min(ev.clientX + 14, innerWidth - 270) + "px"; tip.style.top = (ev.clientY + 16) + "px";
+  }
+  if (ok) {
+    canvas.addEventListener("pointerdown", e => { dragging = { x: e.clientX, y: e.clientY, moved: false }; lastTouch = performance.now() });
+    addEventListener("pointerup", e => {
+      if (dragging && !dragging.moved && e.target === canvas) {
+        const o = pick(e); if (o) { filterCat = filterCat === o.userData.c.name ? null : o.userData.c.name; renderResults(false); hover(o, e) }
+      }
+      dragging = null;
+    });
+    canvas.addEventListener("pointermove", e => {
+      if (dragging) {
+        const dx = e.clientX - dragging.x, dy = e.clientY - dragging.y;
+        if (Math.abs(dx) + Math.abs(dy) > 3) dragging.moved = true;
+        theta -= dx * 0.006; phi = Math.min(1.4, Math.max(0.45, phi - dy * 0.004));
+        dragging.x = e.clientX; dragging.y = e.clientY; lastTouch = performance.now();
+      }
+      hover(pick(e), e);
+    });
+    canvas.addEventListener("pointerleave", () => hover(null));
+    canvas.addEventListener("wheel", e => { e.preventDefault(); radius = Math.min(60, Math.max(14, radius + e.deltaY * 0.02)); lastTouch = performance.now() }, { passive: false });
+    try { new ResizeObserver(resize).observe(wrap) } catch (e) { addEventListener("resize", resize) }
+    resize(); requestAnimationFrame(frame);
+  }
+  return { build };
+})();
+
+// ---------- rendering ----------
+function setRangeFill(el) { const p = (el.value - el.min) / (el.max - el.min) * 100; el.style.setProperty("--p", p + "%") }
 function renderData() {
   const weeks = new Set(data.sales.map(s => s.w)).size, newOnes = data.articles.filter(a => !data.sales.some(s => s.a === a.id)).length;
-  $("st-articles").textContent = data.sample ? `${data.articles.length} articles · ${newOnes} new` : data.fileArticles ? `${data.fileArticles.length} articles` : "not loaded";
   $("st-sales").textContent = `${weeks} weeks · ${data.articles.length} articles`;
-  $("st-sales").className = "chip" + (data.sample ? "" : " ok"); $("st-articles").className = "chip" + (!data.sample && data.fileArticles ? " ok" : "");
-  if (data.sample) { $("st-articles").textContent += " · sample"; $("st-sales").textContent += " · sample" }
+  $("st-articles").textContent = data.sample ? `${newOnes} new articles` : data.fileArticles ? `${data.fileArticles.length} articles` : "not loaded";
+  $("datatext").textContent = data.sample ? "Sample sports shop" : "Your data";
+  $("datapill").className = "pill" + (data.sample ? "" : " live");
   $("use-sample").hidden = !!data.sample;
 }
 function renderParams() {
@@ -507,52 +682,61 @@ function renderParams() {
   for (const b of $("presets").children) b.setAttribute("aria-pressed", String(+b.dataset.w === prm.weeks));
   $("p-st").value = prm.st; $("v-st").textContent = pct(prm.st);
   $("p-min").value = prm.min; $("v-min").textContent = prm.min;
+  for (const id of ["p-weeks", "p-st", "p-min"]) setRangeFill($(id));
 }
-function recompute() { colorCats(); result = plan(data, prm); renderResults() }
-function renderResults() {
-  const R = result, left = prm.budget - R.spent, need = sum(R.cats.map(c => c.needEur));
+function recompute() { colorCats(); result = plan(data, prm); renderResults(true) }
+function ring(value, color) {
+  const c = 2 * Math.PI * 38, v = Math.max(0, Math.min(1, value));
+  return `<svg viewBox="0 0 92 92" aria-hidden="true"><circle class="track" cx="46" cy="46" r="38" fill="none" stroke-width="9"/><circle class="val" cx="46" cy="46" r="38" fill="none" stroke-width="9" stroke="${color}" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - v)}"/></svg>`;
+}
+function renderResults(rebuild3d) {
+  const R = result, left = prm.budget - R.spent, need = R.need;
+  $("h-eyebrow").textContent = `Buying plan · next ${prm.weeks} week${prm.weeks > 1 ? "s" : ""}`;
+  $("h-eur").textContent = eur(R.spent);
+  $("h-units").textContent = `${R.units.toLocaleString("en-GB")} units`;
+  $("h-lead").textContent = `From your ${eur(prm.budget)} budget, spread over ${R.cats.filter(c => c.spent > 0).length} categories and ${R.rows.filter(r => r.buy > 0).length} articles by what sells. Each tower is a category, each block an article.`;
   $("s3sub").textContent = `For the next ${prm.weeks} weeks with a ${eur(prm.budget)} budget and ${pct(prm.st)} target sell-through.`;
   $("kpis").innerHTML = [
-    [eur(R.spent), left > 1 ? `planned · ${eur(left)} left because stock already covers the rest` : "planned from your budget"],
-    [R.units.toLocaleString("en-GB"), "units to buy"],
-    [pct(R.expST), need > prm.budget * 1.05 ? `expected sell-through · budget covers ${pct(prm.budget / need)} of what your target needs` : "expected sell-through"],
-    [eur(R.revenue), `expected sales · ${eur(R.margin)} margin`],
-  ].map(([b, s]) => `<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join("");
-  const tot = R.spent || 1;
-  $("stack").innerHTML = R.cats.filter(c => c.spent > 0).map(c => `<div style="flex:${c.spent};background:${catColor[c.name]}" data-tip="${esc(c.name)}: ${eur(c.spent)} (${pct(c.spent / tot)})"></div>`).join("");
-  $("stack").setAttribute("aria-label", "Budget by category: " + R.cats.map(c => `${c.name} ${eur(c.spent)}`).join(", "));
-  $("cats").innerHTML = R.cats.map(c => `<button class="cat" data-cat="${esc(c.name)}" aria-pressed="${filterCat === c.name}">
-      <span class="name"><span class="dot" style="background:${catColor[c.name]}"></span>${esc(c.name)}</span>
-      <span class="eur">${eur(c.spent)}</span>
-      <span class="small muted">${pct(c.spent / tot)} of plan · ${c.units.toLocaleString("en-GB")} units</span>
-      <span class="small">Sell-through now <b class="num">${c.st == null ? "–" : pct(c.st)}</b></span>
-      <span class="bar"><i style="width:${c.st == null ? 0 : c.st * 100}%;background:${catColor[c.name]}"></i></span>
-    </button>`).join("");
-  renderRows();
-  const a = R.acc, acc = x => pct(Math.max(0, 1 - x));
+    [pct(R.expST), "expected sell-through" + (need > prm.budget * 1.05 ? ` · budget covers ${pct(prm.budget / need)} of what your target needs` : "")],
+    [eur(R.revenue), "expected sales"],
+    [eur(R.margin), "expected margin"],
+    [left > 1 ? eur(left) : "€0", left > 1 ? "left over, because stock already covers the rest" : "left over"],
+  ].map(([b, s]) => `<div class="kpi glass"><b>${b}</b><span>${s}</span></div>`).join("");
+  const a = R.acc;
   $("accnote").textContent = a
     ? `We hid your last ${a.weeks} weeks of sales, forecast them from the weeks before, and compared with what really sold.` + (prm.weeks > a.weeks ? ` Your history is too short to test ${prm.weeks} weeks, so this is the ${a.weeks}-week test.` : "")
     : `Not enough history to test a ${prm.weeks}-week forecast yet. The app needs about 10 more weeks of sales than the time frame.`;
   $("acc").innerHTML = a ? [
-    [acc(a.total), "Whole plan", `All articles together: off by ${pct(a.total)}. This is what your total budget rests on.`],
-    [acc(a.category), "Per category", `Off by ${pct(a.category)} on average. This sets the euros per category.`],
-    [acc(a.article), "Per article", `Off by ${pct(a.article)} (a plain average of recent weeks: ${pct(a.naive)}). Single articles swing from week to week, so no model gets them exact.`],
-  ].map(([v, t, d]) => `<div><span class="small muted">${t}</span><b>${v}</b><span class="small">${d}</span></div>`).join("")
-    + `<div><span class="small muted">To make it more accurate</span><span class="small">Load a full year of sales so the app sees last season, add price and promotion changes, and leave out weeks when an article was sold out.</span></div>` : "";
+    [1 - a.total, "#6fe0a6", "Whole plan", `All articles together were off by ${pct(a.total)}. Your total budget rests on this.`],
+    [1 - a.category, "#8f7bff", "Per category", `Off by ${pct(a.category)} on average. This sets the euros per category.`],
+    [1 - a.article, "#ff8a5c", "Per article", `Off by ${pct(a.article)} (a plain recent average: ${pct(a.naive)}). Single articles swing week to week.`],
+  ].map(([v, col, t, d]) => `<div class="ring glass">${ring(v, col)}<div><span class="small muted">${t}</span><span class="pct">${pct(Math.max(0, v))}</span><p>${d}</p></div></div>`).join("")
+    + `<div class="ring glass tip"><div><span class="small muted">To make it more accurate</span><p style="color:var(--ink)">Load a full year of sales so the app sees last season, add price and promotion changes, and leave out weeks when an article was sold out.</p></div></div>` : "";
+  const tot = R.spent || 1;
+  $("cats").innerHTML = R.cats.map(c => `<button class="cat glass" data-cat="${esc(c.name)}" aria-pressed="${filterCat === c.name}">
+      <span class="name"><i class="sw" style="background:${catColor[c.name]}"></i>${esc(c.name)}</span>
+      <span class="eur">${eur(c.spent)}</span>
+      <span class="small muted">${pct(c.spent / tot)} of the plan · ${c.units.toLocaleString("en-GB")} units</span>
+      <span class="small">Sell-through now <b class="num">${c.st == null ? "–" : pct(c.st)}</b></span>
+      <span class="meter"><i style="width:${c.st == null ? 0 : c.st * 100}%;background:${catColor[c.name]}"></i></span>
+    </button>`).join("");
+  if (rebuild3d) stage3d.build(R);
+  renderRows();
 }
 function renderRows() {
   const q = query.trim().toLowerCase();
   const rows = result.rows.filter(r => (!filterCat || r.a.category === filterCat) && (!q || `${r.a.name} ${r.a.id} ${r.a.category}`.toLowerCase().includes(q)))
     .sort((x, y) => y.buyEur - x.buyEur || y.rate * y.a.price - x.rate * x.a.price);
   $("rows").innerHTML = rows.map(r => {
-    const badge = !r.hasHist ? `<span class="chip">New</span>` : r.cls === "A" ? `<span class="chip top">Top seller</span>` : r.cls === "C" ? `<span class="chip">Slow</span>` : "";
+    const tag = !r.hasHist ? `<span class="tag new">New</span>` : r.cls === "A" ? `<span class="tag top">Top seller</span>` : r.cls === "C" ? `<span class="tag slow">Slow</span>` : "";
     const why = !r.hasHist ? (r.similar.length ? `Like ${r.similar.slice(0, 2).join(", ")}` : "No similar articles found")
       : r.need === 0 ? `Enough stock for ${r.rate > 0 ? Math.round(r.a.stock / r.rate) : "many"} weeks` : r.buy === 0 ? `Below the smallest order (${prm.min})` : "";
-    return `<tr class="${r.buy ? "" : "zero"}"><td><div class="row" style="gap:6px"><span class="an">${esc(r.a.name)}</span>${badge}</div>${why ? `<div class="why">${esc(why)}</div>` : ""}</td>
-      <td><span class="row" style="gap:6px;flex-wrap:nowrap"><span class="dot" style="background:${catColor[r.a.category]}"></span>${esc(r.a.category)}</span></td>
+    return `<tr class="${r.buy ? "" : "zero"}"><td><span class="an">${esc(r.a.name)}</span>${tag}${why ? `<div class="why">${esc(why)}</div>` : ""}</td>
+      <td><span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><i class="sw" style="background:${catColor[r.a.category]}"></i>${esc(r.a.category)}</span></td>
       <td class="n">${r.rate.toFixed(1)}</td><td class="n">${r.a.stock}</td><td class="n">${r.st == null ? "–" : pct(r.st)}</td>
       <td class="n buy">${r.buy}</td><td class="n buy">${eur(r.buyEur)}</td></tr>`;
   }).join("") || `<tr><td colspan="7" class="muted">No articles match.</td></tr>`;
+  for (const b of $("cats").children) b.setAttribute("aria-pressed", String(b.dataset.cat === filterCat));
 }
 function planCsv() {
   const out = [["article_id", "name", "category", "top_seller", "sells_per_week", "stock", "buy_units", "buy_eur_at_cost"]];
@@ -561,7 +745,7 @@ function planCsv() {
 }
 
 // ---------- events ----------
-let t0; const later = fn => { clearTimeout(t0); t0 = setTimeout(fn, 120) };
+let t0; const later = fn => { clearTimeout(t0); t0 = setTimeout(fn, 140) };
 function setPrm(k, v) { prm[k] = v; store.set("prm", prm); renderParams(); later(recompute) }
 $("p-budget").addEventListener("input", e => { const v = num(e.target.value.replace(/[.,](?=\d{3}\b)/g, "")); if (v != null && v >= 0) { prm.budget = v; store.set("prm", prm); later(recompute) } });
 $("p-budget").addEventListener("blur", renderParams);
@@ -570,13 +754,13 @@ $("presets").addEventListener("click", e => { const b = e.target.closest("[data-
 $("p-st").addEventListener("input", e => setPrm("st", +e.target.value));
 $("p-min").addEventListener("input", e => setPrm("min", +e.target.value));
 $("q").addEventListener("input", e => { query = e.target.value; renderRows() });
-$("cats").addEventListener("click", e => { const b = e.target.closest("[data-cat]"); if (!b) return; filterCat = filterCat === b.dataset.cat ? null : b.dataset.cat; renderResults() });
+$("cats").addEventListener("click", e => { const b = e.target.closest("[data-cat]"); if (!b) return; filterCat = filterCat === b.dataset.cat ? null : b.dataset.cat; renderRows() });
 $("copy").addEventListener("click", () => {
   const text = planCsv(), m = $("copymsg");
   const fallback = () => { const pre = $("csv"); pre.textContent = text; pre.hidden = false; const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); m.textContent = "Selected below. Copy it with your keyboard or a long press."; m.hidden = false };
   try { navigator.clipboard.writeText(text).then(() => { m.textContent = "Copied. Paste it into Excel or an email."; m.hidden = false }, fallback) } catch (e) { fallback() }
 });
-$("use-sample").addEventListener("click", () => { store.del("data"); data = sampleData(); filterCat = null; renderData(); recompute(); showMsg("Back to the sample shop.") });
+$("use-sample").addEventListener("click", () => { store.del("data"); data = sampleData(); filterCat = null; renderData(); recompute(); showMsg("Back to the sample sports shop.") });
 function showMsg(t, bad) { const m = $("loadmsg"); m.textContent = t; m.className = "msg" + (bad ? " bad" : ""); m.hidden = false }
 function load(kind, file) {
   const reader = new FileReader();
@@ -605,9 +789,6 @@ for (const kind of ["articles", "sales"]) {
   zone.addEventListener("dragleave", () => zone.classList.remove("over"));
   zone.addEventListener("drop", e => { e.preventDefault(); zone.classList.remove("over"); if (e.dataTransfer.files[0]) load(kind, e.dataTransfer.files[0]) });
 }
-const tip = $("tip");
-$("stack").addEventListener("mousemove", e => { const d = e.target.closest("[data-tip]"); if (!d) { tip.hidden = true; return } tip.textContent = d.dataset.tip; tip.hidden = false; tip.style.left = Math.min(e.clientX + 12, innerWidth - 250) + "px"; tip.style.top = (e.clientY + 14) + "px" });
-$("stack").addEventListener("mouseleave", () => tip.hidden = true);
 
 renderData(); renderParams(); recompute();
 </script>
