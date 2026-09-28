@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 
 const html = readFileSync(new URL("../web/index.html", import.meta.url), "utf8");
 const logic = html.split("<script>")[1].split("// ---------- state")[0];
-const api = new Function(logic + "\nreturn { sampleData, plan, readCsv, parseRows, importers, num, dayOf, boost };")();
+const api = new Function(logic + "\nreturn { sampleData, plan, backtest, readCsv, parseRows, importers, num, dayOf, boost, articlesFromSales, mergeArticles };")();
 const prm = { budget: 120000, weeks: 8, st: 0.8, min: 3 };
 const data = api.sampleData();
 const R = api.plan(data, prm);
@@ -41,9 +41,30 @@ test("new articles get a forecast from similar articles in their category", () =
   }
 });
 
-test("the boosted model is tested and does not do worse than a plain average", () => {
+test("the forecast is tested on hidden weeks and is close at plan level", () => {
   assert.ok(R.acc, "accuracy should be measured on sample data");
-  assert.ok(R.acc.model <= R.acc.naive * 1.05, JSON.stringify(R.acc));
+  assert.equal(R.acc.weeks, prm.weeks);
+  assert.ok(R.acc.article <= R.acc.naive * 1.05, JSON.stringify(R.acc));
+  assert.ok(R.acc.total < 0.05, JSON.stringify(R.acc));
+  assert.ok(R.acc.total <= R.acc.category && R.acc.category <= R.acc.article, JSON.stringify(R.acc));
+});
+
+test("says when history is too short to test a time frame", () => {
+  const last = Math.max(...data.sales.map(s => s.w));
+  const short = { articles: data.articles, sales: data.sales.filter(s => s.w > last - 15 * 7) };
+  assert.equal(api.backtest(short, 13), null);
+});
+
+test("one sales file is enough: article details come from its columns", () => {
+  const rows = api.readCsv("date,article_id,units,name,category,price,cost,stock\n2026-01-05,A1,3,Cap,Accessories,19.99,8,5\n2026-01-12,A1,4,,,,,2\n2026-01-12,B2,1,Bag,Bags,,,\n");
+  const r = api.parseRows(rows, api.importers.sales);
+  const arts = api.articlesFromSales(r.items);
+  const a1 = arts.find(a => a.id === "A1");
+  assert.equal(a1.name, "Cap"); assert.equal(a1.price, 19.99); assert.equal(a1.stock, 2);
+  const merged = api.mergeArticles(arts, [{ id: "C3", name: "New cap", category: "Accessories", price: 24.99, cost: 10, stock: 0, brand: "", color: "" }]);
+  assert.equal(merged.articles.length, 3);
+  assert.equal(merged.noPrice, 1);
+  assert.equal(merged.articles.find(a => a.id === "B2").price, 10);
 });
 
 test("sell-through is between 0 and 1", () => {

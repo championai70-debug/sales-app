@@ -72,6 +72,12 @@ button, input, select { font: inherit; color: inherit }
 .params { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px }
 .param { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 6px; min-width: 0 }
 .param label { font-weight: 700; font-size: 14px }
+.presets { display: flex; flex-wrap: wrap; gap: 6px }
+.presets button { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 4px 10px; font-size: 13px; font-weight: 600; cursor: pointer }
+.presets button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent) }
+.acc { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px }
+.acc > div { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 2px; min-width: 0 }
+.acc b { font: 600 24px var(--mono); letter-spacing: -.02em }
 .param .val { font: 600 24px var(--mono); letter-spacing: -.02em }
 .param input[type="range"] { width: 100%; accent-color: var(--accent) }
 .money { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 10px; padding: 4px 10px; background: var(--sunk) }
@@ -121,25 +127,26 @@ pre.csv { margin: 0; padding: 12px; background: var(--sunk); border-radius: 10px
 <div class="wrap">
   <header class="hero">
     <div class="brand"><div class="mark" aria-hidden="true"><i></i><i></i><i></i></div><b>Sales App</b></div>
-    <h1>Upload your sales. Set a budget. See what to buy.</h1>
+    <h1>Load your sales. Pick a budget and time frame. See what to buy.</h1>
     <p>The app finds your top sellers, compares new articles with similar ones, checks sell-through, and splits your budget into euros per category and units per article.</p>
     <div class="flow"><span><i>1</i>Your data</span><span><i>2</i>Your plan</span><span><i>3</i>What to buy</span></div>
   </header>
 
   <section class="step" aria-labelledby="s1">
-    <div class="step-head"><span class="no">1</span><h2 id="s1">Your data</h2><p>Two CSV files. Until you load yours, the app shows a sample sports shop so you can see how it works.</p></div>
+    <div class="step-head"><span class="no">1</span><h2 id="s1">Your data</h2><p>One sales file is enough. Until you load yours, the app shows a sample sports shop.</p></div>
     <div class="grid2">
-      <label class="drop" id="drop-articles" for="f-articles">
-        <input type="file" id="f-articles" accept=".csv,.txt,text/csv">
-        <span class="t">Articles <span class="chip" id="st-articles"></span></span>
-        <code>article_id, name, category, price, cost, stock, brand, color</code>
-        <span class="small muted">One row per article. Articles with no sales yet are treated as new.</span>
-      </label>
       <label class="drop" id="drop-sales" for="f-sales">
         <input type="file" id="f-sales" accept=".csv,.txt,text/csv">
-        <span class="t">Sales history <span class="chip" id="st-sales"></span></span>
-        <code>date, article_id, units</code>
-        <span class="small muted">Daily or weekly rows. 12 weeks or more works best.</span>
+        <span class="t">Sales file <span class="chip" id="st-sales"></span></span>
+        <span class="small"><b>Needed:</b> <code>date, article_id, units</code></span>
+        <span class="small"><b>Better with:</b> <code>name, category, price, cost, stock</code></span>
+        <span class="small muted">One row per article per day or week. A year of history gives the best forecasts.</span>
+      </label>
+      <label class="drop" id="drop-articles" for="f-articles">
+        <input type="file" id="f-articles" accept=".csv,.txt,text/csv">
+        <span class="t">Articles file <span class="chip" id="st-articles"></span></span>
+        <span class="small"><b>Optional:</b> <code>article_id, name, category, price, cost, stock, brand, color</code></span>
+        <span class="small muted">Use it for current stock and for new articles that have no sales yet.</span>
       </label>
     </div>
     <div class="row"><p class="msg" id="loadmsg" hidden></p><button class="btn ghost" id="use-sample" hidden>Go back to sample data</button></div>
@@ -153,9 +160,12 @@ pre.csv { margin: 0; padding: 12px; background: var(--sunk); border-radius: 10px
         <div class="money"><span>€</span><input id="p-budget" inputmode="numeric" autocomplete="off"></div>
       </div>
       <div class="param">
-        <label for="p-weeks">Plan for</label>
+        <label for="p-weeks">Time frame</label>
         <div class="val"><span id="v-weeks"></span> weeks</div>
-        <input type="range" id="p-weeks" min="2" max="26" step="1">
+        <div class="presets" id="presets" role="group" aria-label="Time frame presets">
+          <button data-w="2">2 weeks</button><button data-w="4">Month</button><button data-w="8">2 months</button><button data-w="13">Season</button>
+        </div>
+        <input type="range" id="p-weeks" min="1" max="26" step="1" aria-label="Weeks">
       </div>
       <div class="param">
         <label for="p-st">Target sell-through</label>
@@ -175,6 +185,11 @@ pre.csv { margin: 0; padding: 12px; background: var(--sunk); border-radius: 10px
     <div class="step-head"><span class="no">3</span><h2 id="s3">What to buy</h2><p id="s3sub"></p></div>
     <div class="sheet">
       <div class="kpis" id="kpis"></div>
+      <div style="display:grid;gap:10px">
+        <h3>How accurate is the forecast?</h3>
+        <p class="small muted" id="accnote" style="margin:0"></p>
+        <div class="acc" id="acc"></div>
+      </div>
       <div style="display:grid;gap:12px">
         <h3>Euros per category</h3>
         <div class="stack" id="stack" role="img"></div>
@@ -199,9 +214,10 @@ pre.csv { margin: 0; padding: 12px; background: var(--sunk); border-radius: 10px
   <details class="how">
     <summary>How the app decides</summary>
     <ol>
-      <li><b>Top sellers.</b> A gradient-boosted tree model (the same idea as XGBoost) learns from your history how many units each article sells next, using recent sales, trend, price, margin, age and how its category is doing. <span id="acc"></span></li>
+      <li><b>Top sellers.</b> A gradient-boosted tree model (the same idea as XGBoost) learns from your history how many units each article sells next, using recent sales, trend, price, margin, age and how its category is doing.</li>
       <li><b>New articles.</b> Articles without sales get the forecast of their three most similar articles (same category, close price, same brand or colour), reduced by 20% to be careful.</li>
       <li><b>Sell-through.</b> Units sold in the last 8 weeks divided by units sold plus stock now. Categories that sell through faster get a bigger share of the budget.</li>
+      <li><b>Time frame.</b> The model is trained for the time frame you pick (2 weeks, a month, a season), so it learns how sales move over that span.</li>
       <li><b>Euros per category.</b> The budget is split by what each category needs to reach your target sell-through, weighted by its sell-through.</li>
       <li><b>Units per article.</b> Each category's euros go to its articles by need, a little more for top sellers and a little less for slow ones, then are turned into units at cost price.</li>
     </ol>
@@ -318,7 +334,9 @@ const importers = {
     const d = dayOf(ds); if (d == null) return "date not understood";
     const a = get("article_id", "id", "sku", "article", "item_id", "product_id", "code"); if (!a) return "no article_id";
     const u = num(get("units", "quantity", "qty", "sold", "units_sold")); if (u == null) return "no units";
-    return { w: monday(d), a, u };
+    const price = num(get("price", "retail_price", "sell_price", "rrp")), stock = num(get("stock", "stock_on_hand", "on_hand", "inventory"));
+    return { w: monday(d), a, u, day: d, info: { name: get("name", "article_name", "description", "product_name"), category: get("category", "product_group", "group", "department"),
+      price, cost: num(get("cost", "cost_price", "buy_price", "purchase_price")), stock: stock == null ? null : Math.max(0, Math.round(stock)), brand: get("brand", "label"), color: get("color", "colour") } };
   },
 };
 
@@ -369,24 +387,37 @@ function feats(P, a, t) {
   let cat8 = 0, cat4 = 0; for (const b of P.byCat[a.category]) { for (let w = Math.max(0, t - 8); w < t; w++) { cat8 += P.U[b.id][w]; if (w >= t - 4) cat4 += P.U[b.id][w] } }
   return [s1, s4, s8, (s4 + .5) / (p4 + .5), Math.min(age, 26), a.price, (a.price - a.cost) / a.price, a.price / P.medPrice[a.category], cat8 ? s8 * 8 / cat8 : 0, cat8 ? (cat4 / 4) / (cat8 / 8) : 1];
 }
-function trainModel(data, P) {
-  const ex = cut => { const X = [], y = [], base = []; for (const a of data.articles) { if (cut - P.launch[a.id] < 2) continue; X.push(feats(P, a, cut)); y.push(mean(Array.from(P.U[a.id].slice(cut, cut + 4)))); base.push(X[X.length - 1][1]) } return { X, y, base } };
-  const sets = []; for (let t = 8; t <= P.T - 4; t++) sets.push([t, ex(t)]);
-  if (!sets.length || sum(sets.map(s => s[1].X.length)) < 20) return null;
-  let acc = null;
-  const older = sets.filter(([t]) => t <= P.T - 8);
-  if (older.length) {
-    const X = older.flatMap(s => s[1].X), y = older.flatMap(s => s[1].y), test = sets[sets.length - 1][1];
-    if (X.length >= 20 && test.X.length) {
-      const m = boost(X, y), actual = sum(test.y);
-      if (actual > 0) acc = { model: sum(test.X.map((x, i) => Math.abs(m(x) - test.y[i]))) / actual, naive: sum(test.base.map((b, i) => Math.abs(b - test.y[i]))) / actual };
-    }
+// Learns the average weekly units over the next H weeks (H = the time frame you plan for).
+function trainModel(data, P, H) {
+  const X = [], y = [];
+  for (let t = 8; t <= P.T - H; t++) for (const a of data.articles) {
+    if (t - P.launch[a.id] < 2) continue;
+    X.push(feats(P, a, t)); y.push(mean(Array.from(P.U[a.id].slice(t, t + H))));
   }
-  const model = boost(sets.flatMap(s => s[1].X), sets.flatMap(s => s[1].y));
-  return { model, acc };
+  return X.length >= 20 ? boost(X, y) : null;
+}
+// Honest check: hide the last H weeks, train on the rest, forecast them, compare with what really sold.
+function backtest(data, H) {
+  const P = prepare(data);
+  if (P.T - H < 10) return null;
+  const cut = P.T - H, w0 = P.w0;
+  const past = { articles: data.articles, sales: data.sales.filter(s => (s.w - w0) / 7 < cut) };
+  const Q = prepare(past); Q.T = cut;
+  for (const a of data.articles) { Q.U[a.id] = P.U[a.id].slice(0, cut); const L = Q.U[a.id].findIndex(v => v > 0); Q.launch[a.id] = L < 0 ? cut : L }
+  const model = trainModel(past, Q, H);
+  const e = { art: 0, naive: 0, act: 0 }, cat = {};
+  let fcAll = 0;
+  for (const a of data.articles) {
+    if (cut - Q.launch[a.id] < 2) continue;
+    const actual = sum(Array.from(P.U[a.id].slice(cut))), f = feats(Q, a, cut), fc = (model ? model(f) : f[1]) * H;
+    e.art += Math.abs(fc - actual); e.naive += Math.abs(f[1] * H - actual); e.act += actual; fcAll += fc;
+    const c = cat[a.category] = cat[a.category] || [0, 0]; c[0] += fc; c[1] += actual;
+  }
+  if (!e.act) return null;
+  return { article: e.art / e.act, naive: e.naive / e.act, category: sum(Object.values(cat).map(c => Math.abs(c[0] - c[1]))) / e.act, total: Math.abs(fcAll - e.act) / e.act, weeks: H };
 }
 function plan(data, prm) {
-  const P = prepare(data), trained = trainModel(data, P);
+  const P = prepare(data), H = Math.min(prm.weeks, Math.max(1, P.T - 10)), model = trainModel(data, P, H), trained = model && { model };
   const rows = data.articles.map(a => {
     const u = P.U[a.id], hasHist = P.launch[a.id] < P.T;
     let s8 = 0; for (let w = Math.max(0, P.T - 8); w < P.T; w++) s8 += u[w];
@@ -434,9 +465,26 @@ function plan(data, prm) {
   }
   for (const r of rows) { r.expSold = Math.min(r.demand, r.a.stock + r.buy) }
   const spent = sum(cats.map(c => c.spent)), units = sum(rows.map(r => r.buy)), avail = sum(rows.map(r => r.a.stock + r.buy)), sold = sum(rows.map(r => r.expSold));
-  return { P, rows, need: sum(cats.map(c => c.needEur)), cats: cats.sort((x, y) => y.spent - x.spent), acc: trained && trained.acc, trained: !!trained, spent, units, expST: avail ? sold / avail : 0, revenue: sum(rows.map(r => r.expSold * r.a.price)), margin: sum(rows.map(r => r.expSold * (r.a.price - r.a.cost))) };
+  return { P, rows, need: sum(cats.map(c => c.needEur)), cats: cats.sort((x, y) => y.spent - x.spent), acc: backtest(data, H), trained: !!trained, horizon: H, spent, units, expST: avail ? sold / avail : 0, revenue: sum(rows.map(r => r.expSold * r.a.price)), margin: sum(rows.map(r => r.expSold * (r.a.price - r.a.cost))) };
 }
 
+// Article details can come from the sales file itself; an articles file adds stock and new articles.
+function articlesFromSales(sales) {
+  const m = {};
+  for (const s of [...sales].sort((x, y) => x.day - y.day)) {
+    const a = m[s.a] = m[s.a] || { id: s.a, name: s.a, category: "Other", price: null, cost: null, stock: 0, brand: "", color: "" }, i = s.info || {};
+    for (const k of ["name", "category", "brand", "color"]) if (i[k]) a[k] = i[k];
+    for (const k of ["price", "cost", "stock"]) if (i[k] != null) a[k] = i[k];
+  }
+  return Object.values(m);
+}
+function mergeArticles(fromSales, fromFile) {
+  const m = {}; for (const a of fromSales) m[a.id] = { ...a };
+  for (const a of fromFile || []) m[a.id] = Object.assign(m[a.id] || {}, Object.fromEntries(Object.entries(a).filter(([, v]) => v !== "" && v != null)));
+  const out = Object.values(m); let noPrice = 0;
+  for (const a of out) { if (a.price == null) { a.price = 10; noPrice++ } if (a.cost == null) a.cost = Math.round(a.price * 50) / 100 }
+  return { articles: out, noPrice };
+}
 // ---------- state ----------
 let data = store.get("data", null) || sampleData();
 let prm = Object.assign({ budget: 120000, weeks: 8, st: .8, min: 3 }, store.get("prm", {}));
@@ -447,15 +495,16 @@ function colorCats() { const names = [...new Set(data.articles.map(a => a.catego
 
 function renderData() {
   const weeks = new Set(data.sales.map(s => s.w)).size, newOnes = data.articles.filter(a => !data.sales.some(s => s.a === a.id)).length;
-  $("st-articles").textContent = `${data.articles.length} articles${newOnes ? ` · ${newOnes} new` : ""}`;
-  $("st-sales").textContent = `${weeks} weeks`;
-  for (const k of ["st-articles", "st-sales"]) $(k).className = "chip" + (data.sample ? "" : " ok");
+  $("st-articles").textContent = data.sample ? `${data.articles.length} articles · ${newOnes} new` : data.fileArticles ? `${data.fileArticles.length} articles` : "not loaded";
+  $("st-sales").textContent = `${weeks} weeks · ${data.articles.length} articles`;
+  $("st-sales").className = "chip" + (data.sample ? "" : " ok"); $("st-articles").className = "chip" + (!data.sample && data.fileArticles ? " ok" : "");
   if (data.sample) { $("st-articles").textContent += " · sample"; $("st-sales").textContent += " · sample" }
   $("use-sample").hidden = !!data.sample;
 }
 function renderParams() {
   $("p-budget").value = Math.round(prm.budget).toLocaleString("en-GB");
   $("p-weeks").value = prm.weeks; $("v-weeks").textContent = prm.weeks;
+  for (const b of $("presets").children) b.setAttribute("aria-pressed", String(+b.dataset.w === prm.weeks));
   $("p-st").value = prm.st; $("v-st").textContent = pct(prm.st);
   $("p-min").value = prm.min; $("v-min").textContent = prm.min;
 }
@@ -480,9 +529,16 @@ function renderResults() {
       <span class="bar"><i style="width:${c.st == null ? 0 : c.st * 100}%;background:${catColor[c.name]}"></i></span>
     </button>`).join("");
   renderRows();
-  const a = R.acc;
-  $("acc").textContent = !R.trained ? "Your history is too short to train it yet, so it uses the average of recent weeks."
-    : a ? `Tested on the last 4 weeks it had not seen, it was off by ${pct(a.model)} of units sold (a plain 4-week average was off by ${pct(a.naive)}).` : "";
+  const a = R.acc, acc = x => pct(Math.max(0, 1 - x));
+  $("accnote").textContent = a
+    ? `We hid your last ${a.weeks} weeks of sales, forecast them from the weeks before, and compared with what really sold.` + (prm.weeks > a.weeks ? ` Your history is too short to test ${prm.weeks} weeks, so this is the ${a.weeks}-week test.` : "")
+    : `Not enough history to test a ${prm.weeks}-week forecast yet. The app needs about 10 more weeks of sales than the time frame.`;
+  $("acc").innerHTML = a ? [
+    [acc(a.total), "Whole plan", `All articles together: off by ${pct(a.total)}. This is what your total budget rests on.`],
+    [acc(a.category), "Per category", `Off by ${pct(a.category)} on average. This sets the euros per category.`],
+    [acc(a.article), "Per article", `Off by ${pct(a.article)} (a plain average of recent weeks: ${pct(a.naive)}). Single articles swing from week to week, so no model gets them exact.`],
+  ].map(([v, t, d]) => `<div><span class="small muted">${t}</span><b>${v}</b><span class="small">${d}</span></div>`).join("")
+    + `<div><span class="small muted">To make it more accurate</span><span class="small">Load a full year of sales so the app sees last season, add price and promotion changes, and leave out weeks when an article was sold out.</span></div>` : "";
 }
 function renderRows() {
   const q = query.trim().toLowerCase();
@@ -510,6 +566,7 @@ function setPrm(k, v) { prm[k] = v; store.set("prm", prm); renderParams(); later
 $("p-budget").addEventListener("input", e => { const v = num(e.target.value.replace(/[.,](?=\d{3}\b)/g, "")); if (v != null && v >= 0) { prm.budget = v; store.set("prm", prm); later(recompute) } });
 $("p-budget").addEventListener("blur", renderParams);
 $("p-weeks").addEventListener("input", e => setPrm("weeks", +e.target.value));
+$("presets").addEventListener("click", e => { const b = e.target.closest("[data-w]"); if (b) setPrm("weeks", +b.dataset.w) });
 $("p-st").addEventListener("input", e => setPrm("st", +e.target.value));
 $("p-min").addEventListener("input", e => setPrm("min", +e.target.value));
 $("q").addEventListener("input", e => { query = e.target.value; renderRows() });
@@ -527,16 +584,16 @@ function load(kind, file) {
     if (/\.xlsx?$/i.test(file.name)) return showMsg("Please save the file as CSV first (in Excel: File › Save as › CSV).", true);
     const r = parseRows(readCsv(String(reader.result)), importers[kind]);
     if (!r.items.length) return showMsg(`Nothing loaded from ${file.name}: ${r.problems[0] || "check the column names"}.`, true);
-    const next = { articles: data.articles, sales: data.sales, sample: false, [kind]: r.items };
-    if (kind === "articles" && data.sample) next.sales = [];
-    if (kind === "sales" && data.sample) { const ids = new Set(r.items.map(s => s.a)); next.articles = [...ids].map(id => ({ id, name: id, category: "Other", price: 10, cost: 5, stock: 0, brand: "", color: "" })) }
-    data = next; store.set("data", data); filterCat = null;
-    const unknown = kind === "sales" ? r.items.filter(s => !data.articles.some(a => a.id === s.a)).length : 0;
+    let salesArticles = data.sample ? [] : data.salesArticles || [], fileArticles = data.sample ? null : data.fileArticles || null, sales = data.sample ? [] : data.sales;
+    if (kind === "sales") { salesArticles = articlesFromSales(r.items); sales = r.items.map(({ w, a, u }) => ({ w, a, u })) }
+    else fileArticles = r.items;
+    const merged = mergeArticles(salesArticles, fileArticles);
+    data = { sales, salesArticles, fileArticles, articles: merged.articles, sample: false };
+    store.set("data", data); filterCat = null;
     showMsg(`Loaded ${r.items.length.toLocaleString("en-GB")} ${kind === "sales" ? "sales rows" : "articles"} from ${file.name}.` +
       (r.problems.length ? ` Skipped ${r.problems.length} rows (${r.problems[0]}).` : "") +
-      (kind === "articles" && !data.sales.length ? " Now load the sales history." : "") +
-      (kind === "sales" && data.articles.every(a => a.category === "Other") ? " Now load the articles file for names, prices and stock." : "") +
-      (unknown ? ` ${unknown} sales rows are for articles not in the articles file.` : ""), !!r.problems.length && !r.items.length);
+      (!sales.length ? " Now load your sales file." : "") +
+      (merged.noPrice ? ` ${merged.noPrice} articles have no price, so they count as €10 each until you add a price column.` : ""));
     renderData(); recompute();
   };
   reader.readAsText(file);

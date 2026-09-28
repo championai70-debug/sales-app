@@ -10,12 +10,15 @@ Upload your sales, set a budget, and see what to buy: **euros per category** and
 
 ## How to use it
 
-1. **Your data.** Load two CSV files (comma or semicolon; in Excel use *Save as › CSV*):
-   - Articles: `article_id, name, category, price, cost, stock, brand, color`
-   - Sales history: `date, article_id, units` (daily or weekly rows; 12+ weeks is best)
+1. **Your data.** One CSV sales file is enough (comma or semicolon; in Excel use *Save as › CSV*):
+   - Needed: `date, article_id, units` (daily or weekly rows; a year is best)
+   - Better with: `name, category, price, cost, stock`
+   - Optional articles file: `article_id, name, category, price, cost, stock, brand, color`,
+     for current stock and new articles that have no sales yet.
 
    Until you load yours, the app shows a sample sports shop.
-2. **Your plan.** Budget (at cost), how many weeks to plan for, target sell-through,
+2. **Your plan.** Budget (at cost), time frame (2 weeks, a month, 2 months, a season or any
+   number of weeks), target sell-through,
    smallest order per article. The results update as you change them.
 3. **What to buy.** Totals, euros per category, and a table of units and euros per
    article. Tap a category to filter. *Copy plan as CSV* to paste into Excel.
@@ -25,8 +28,9 @@ Upload your sales, set a budget, and see what to buy: **euros per category** and
 1. **Top sellers.** Gradient-boosted trees (the idea behind XGBoost), written in plain
    JavaScript, predict each article's weekly sales from recent sales, trend, price,
    margin, age and category momentum. It starts from the 4-week average and learns
-   corrections. It is tested on the latest 4 weeks it did not see; the result is shown
-   under "How the app decides". Top 20% of forecast revenue = *Top seller*, bottom half = *Slow*.
+   corrections, trained for the chosen time frame. It is tested by hiding the last weeks
+   of sales and forecasting them; accuracy is shown for the whole plan, per category and
+   per article. Top 20% of forecast revenue = *Top seller*, bottom half = *Slow*.
 2. **New articles** (no sales yet) take the forecast of their 3 most similar articles
    (category, price, brand, colour), minus 20%.
 3. **Sell-through** = units sold in the last 8 weeks ÷ (sold + stock now).
