@@ -157,15 +157,19 @@ class DemandModel private constructor(
                 if (ChronoUnit.DAYS.between(firstDay, cutoff) < 60) null else examples(data, cutoff)
             }
             if (sets.isEmpty()) return null
-            val all = sets.flatten()
+            val all = thin(sets.flatten())
             if (all.none { it.second } || all.all { it.second }) return null
             // Check: learn from older months, test on the newest month.
             val check = if (sets.size >= 2) {
-                val m = fit(sets.drop(1).flatten(), null, 0)
+                val m = fit(thin(sets.drop(1).flatten()), null, 0)
                 auc(sets.first().map { m.probability(it.first) to it.second })
             } else null
             return fit(all, check, all.size)
         }
+
+        /** Keeps training quick on a phone with big files: at most [max] evenly spread examples. */
+        private fun <T> thin(all: List<T>, max: Int = 50_000): List<T> =
+            if (all.size <= max) all else List(max) { all[(it.toLong() * all.size / max).toInt()] }
 
         private fun examples(data: DataSet, cutoff: LocalDate): List<Pair<Signals, Boolean>> {
             val table = SignalTable(data, cutoff)

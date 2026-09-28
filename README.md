@@ -57,3 +57,8 @@ formats (`1,49`, `05.01.2026`) are fine.
   on the `latest-apk` release.
 - The APK is signed with a test key in the repo (`app/test-signing.keystore`) so updates
   install over each other. Make a private key before publishing on Google Play.
+
+## Try it in a browser
+
+`web/index.html` is the same app as one web page (sample data, ranking, stock sharing,
+CSV import, orders kept in the browser). Open it in any browser; nothing is uploaded.

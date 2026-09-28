@@ -78,16 +78,16 @@ class AppModel(context: Context, private val scope: CoroutineScope) {
             createdAt = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
             lines = lines.filter { it.quantity > 0 },
         )
-        setOrders(orders.filter { it.id != order.id } + order)
+        replaceOrders(orders.filter { it.id != order.id } + order)
     }
 
-    fun deleteOrder(id: String) = setOrders(orders.filter { it.id != id })
+    fun deleteOrder(id: String) = replaceOrders(orders.filter { it.id != id })
 
-    fun clearOrders() = setOrders(emptyList())
+    fun clearOrders() = replaceOrders(emptyList())
 
     fun ordersCsv(): String = Orders.toCsv(orders, data)
 
-    private fun setOrders(o: List<Order>) {
+    private fun replaceOrders(o: List<Order>) {
         orders = o
         scope.launch(Dispatchers.IO) { File(dir, "orders.csv").writeText(Orders.toCsv(o, data)) }
         rebuild()
@@ -118,7 +118,7 @@ class AppModel(context: Context, private val scope: CoroutineScope) {
         usingSample = true
         prefs.edit().putBoolean("sample", true).apply()
         save(d)
-        setOrders(emptyList())
+        replaceOrders(emptyList())
     }
 
     private fun save(d: DataSet) {

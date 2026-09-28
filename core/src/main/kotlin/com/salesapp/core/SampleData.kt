@@ -108,7 +108,7 @@ object SampleData {
         // Stock for the coming month: some products plentiful, some short.
         val withStock = products.map { p ->
             val need = monthly[p.id] ?: 0.0
-            val factor = listOf(0.5, 0.7, 1.0, 1.4, 1.8)[rnd.nextInt(5)]
+            val factor = listOf(0.6, 0.9, 1.3, 1.8, 2.4)[rnd.nextInt(5)]
             p.copy(stock = ((need * factor) / p.packSize).roundToInt() * p.packSize)
         }
         return DataSet(withStock, customers, sales.sortedBy { it.date })

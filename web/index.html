@@ -1,0 +1,545 @@
+<title>Sales App</title>
+<meta name="description" content="Try the Sales App in your browser: ranked products per shop and fair stock sharing.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one narrow phone-like column; a sticky header with tabs, cards for shops and products. */
+:root {
+  --bg: #f3f6f4; --surface: #ffffff; --fg: #17231d; --muted: #5b6b63; --line: #dbe3de;
+  --accent: #1b6e4f; --accent-soft: #e1f0e8; --on-accent: #ffffff; --gold: #b7861a; --warn: #b3261e; --warn-soft: #fbe9e7;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1613; --surface: #17211c; --fg: #e4ece7; --muted: #9aaba2; --line: #2a3831;
+  --accent: #7dd8b0; --accent-soft: #1d3a2e; --on-accent: #0b1f16; --gold: #e0b454; --warn: #ffb4ab; --warn-soft: #3b1d1a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f1613; --surface: #17211c; --fg: #e4ece7; --muted: #9aaba2; --line: #2a3831;
+  --accent: #7dd8b0; --accent-soft: #1d3a2e; --on-accent: #0b1f16; --gold: #e0b454; --warn: #ffb4ab; --warn-soft: #3b1d1a; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.45 }
+.wrap { max-width: 720px; margin: 0 auto; padding-inline: 16px; padding-block: 0 96px }
+header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 14px 8px; border-bottom: 1px solid var(--line) }
+.brand { display: flex; align-items: center; gap: 10px; flex-wrap: wrap }
+.brand h1 { font-size: 20px; margin: 0; letter-spacing: -.01em }
+.logo { width: 28px; height: 28px; border-radius: 7px; background: var(--accent); display: grid; place-items: end center; padding: 5px 5px 6px; grid-template-columns: repeat(3, 1fr); gap: 2px; align-items: end }
+.logo i { display: block; background: var(--on-accent); border-radius: 1px }
+.logo i:nth-child(1) { height: 6px } .logo i:nth-child(2) { height: 10px } .logo i:nth-child(3) { height: 15px; background: var(--gold) }
+.pill { font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-weight: 600 }
+nav { display: flex; gap: 4px; margin-top: 10px; overflow-x: auto }
+nav button { flex: 1; min-width: 80px; border: 0; background: transparent; color: var(--muted); font: 600 14px var(--sans); padding: 8px 6px; border-radius: 8px; cursor: pointer }
+nav button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent) }
+nav button .n { font-family: var(--mono); font-size: 12px; margin-left: 4px }
+main { display: grid; gap: 10px; padding-top: 14px }
+.note { color: var(--muted); font-size: 13px; margin: 0 }
+input[type="search"] { width: 100%; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: 15px var(--sans) }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 4px; min-width: 0 }
+button.card { text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100% }
+button.card:hover { border-color: var(--accent) }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.row { display: flex; align-items: baseline; gap: 8px; min-width: 0 }
+.row .grow { flex: 1; min-width: 0 }
+.name { font-weight: 600; font-size: 16px }
+.sub { color: var(--muted); font-size: 13px }
+.tag { font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap }
+.tag.warn { color: var(--warn) }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums }
+.prod { display: grid; grid-template-columns: 30px 1fr auto; gap: 10px; align-items: center }
+.prod.on { background: var(--accent-soft); border-color: transparent }
+.rank { font: 500 20px var(--mono); color: var(--muted); text-align: center }
+.prod.on .rank { color: var(--accent) }
+.why { margin: 2px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted) }
+.why li::before { content: "• " }
+.why li.short { color: var(--warn) }
+.step { display: grid; justify-items: center; gap: 2px }
+.step .ctl { display: flex; align-items: center; gap: 2px }
+.step button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--fg); font-size: 18px; cursor: pointer }
+.step .q { min-width: 32px; text-align: center; font: 500 16px var(--mono) }
+.step small { font-size: 11px; color: var(--muted) }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 6 }
+.bar .inner { max-width: 688px; margin: 0 auto; display: flex; align-items: center; gap: 12px }
+.btn { border: 0; border-radius: 10px; padding: 11px 16px; font: 600 15px var(--sans); background: var(--accent); color: var(--on-accent); cursor: pointer }
+.btn:disabled { opacity: .45; cursor: default }
+.btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line) }
+.btn.danger { background: var(--warn); color: var(--surface) }
+.back { border: 0; background: none; color: var(--accent); font: 600 15px var(--sans); cursor: pointer; padding: 0 }
+.meter { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; margin-top: 4px }
+.meter span { display: block; height: 100%; background: var(--accent) }
+.meter.short span { background: var(--warn) }
+.stats { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted) }
+.stats b { color: var(--fg); font-weight: 500 }
+.set h2 { font-size: 16px; margin: 6px 0 0 }
+.set label.file { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap }
+.set input[type="range"] { width: 100%; accent-color: var(--accent) }
+.ends { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted) }
+.msg { color: var(--accent); font-size: 14px; margin: 0 }
+pre.csv { margin: 0; padding: 10px; background: var(--bg); border-radius: 8px; font: 12px/1.5 var(--mono); overflow-x: auto; max-height: 220px }
+.confirm { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+@media (prefers-reduced-motion: no-preference) { .card, .btn { transition: border-color .15s, background .15s } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><i></i><i></i><i></i></div>
+      <h1>Sales App</h1>
+      <span class="pill" id="datapill">Sample data</span>
+    </div>
+    <nav role="tablist" id="tabs"></nav>
+  </header>
+  <main id="main"></main>
+</div>
+<div class="bar" id="bar" hidden><div class="inner" id="barInner"></div></div>
+
+<script>
+"use strict";
+// ---------- storage (per browser, optional) ----------
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("salesapp." + k); return v == null ? d : JSON.parse(v) } catch (e) { return d } },
+  set(k, v) { try { localStorage.setItem("salesapp." + k, JSON.stringify(v)) } catch (e) {} },
+  del(k) { try { localStorage.removeItem("salesapp." + k) } catch (e) {} },
+};
+const DAY = 86400000;
+const todayDay = Math.floor(Date.now() / DAY);
+const dayStr = d => new Date(d * DAY).toISOString().slice(0, 10);
+const euro = x => "€" + x.toFixed(2);
+const pct = x => Math.round(x * 100) + "%";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// ---------- sample data (same shape as the Android app's) ----------
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 } }
+function sampleData(seed = 7) {
+  const r = rng(seed);
+  const cat = [
+    ["Cola 1.5 L","Drinks",1.49,0.95,6],["Still Water 6 x 1.5 L","Drinks",2.99,2.10,1],["Orange Juice 1 L","Drinks",1.79,1.20,6],
+    ["Energy Drink 250 ml","Drinks",1.29,0.70,12],["Beer 6 x 0.5 L","Drinks",5.49,4.10,4],["Iced Tea 1.5 L","Drinks",1.19,0.72,6],
+    ["Potato Chips 175 g","Snacks",1.99,1.15,10],["Chocolate Bar 100 g","Snacks",1.29,0.70,20],["Butter Biscuits 200 g","Snacks",1.59,0.98,12],
+    ["Salted Peanuts 200 g","Snacks",1.89,1.10,10],["Gummy Bears 200 g","Snacks",1.19,0.62,18],["Pasta 500 g","Food",0.99,0.62,12],
+    ["Rice 1 kg","Food",2.29,1.60,10],["Tomato Sauce 400 g","Food",1.39,0.85,12],["Sunflower Oil 1 L","Food",2.49,1.85,6],
+    ["Instant Noodles 5-pack","Food",2.19,1.30,8],["Ground Coffee 500 g","Hot drinks",6.99,5.10,6],["Black Tea 25 bags","Hot drinks",1.99,1.05,12],
+    ["UHT Milk 1 L","Dairy",1.09,0.82,12],["Yogurt 4-pack","Dairy",1.69,1.10,6],["Toothpaste 75 ml","Personal care",1.95,0.98,12],
+    ["Shampoo 300 ml","Personal care",3.49,1.90,6],["Shower Gel 250 ml","Personal care",1.79,0.92,6],["Deodorant 150 ml","Personal care",2.95,1.45,6],
+    ["Laundry Detergent 20 loads","Household",5.99,4.20,4],["Dish Soap 500 ml","Household",1.49,0.80,12],["Toilet Paper 8 rolls","Household",3.99,3.05,4],
+    ["Kitchen Towels 4 rolls","Household",2.99,2.15,6],
+  ];
+  const tastes = {
+    "Supermarket": {"Drinks":.8,"Snacks":.7,"Food":.9,"Hot drinks":.7,"Dairy":.9,"Personal care":.7,"Household":.8},
+    "Kiosk": {"Drinks":.9,"Snacks":.9,"Food":.2,"Hot drinks":.2,"Dairy":.3,"Personal care":.1,"Household":.1},
+    "Petrol station": {"Drinks":.9,"Snacks":.8,"Food":.1,"Hot drinks":.4,"Dairy":.2,"Personal care":.2,"Household":.2},
+    "Pharmacy": {"Drinks":.3,"Snacks":.2,"Food":.05,"Hot drinks":.2,"Dairy":.05,"Personal care":.95,"Household":.4},
+  };
+  const size = {"Supermarket":3,"Kiosk":1,"Petrol station":1.3,"Pharmacy":1};
+  const shops = [
+    ["Central Supermarket","Supermarket","North",1],["Fresh Market Riverside","Supermarket","South",1],["Budget Foods Hill Street","Supermarket","East",2],
+    ["Family Grocer","Supermarket","West",2],["Neighbourhood Market","Supermarket","North",3],["Station Kiosk","Kiosk","North",2],
+    ["Park Corner Kiosk","Kiosk","South",3],["Late Night Shop","Kiosk","East",2],["Campus Kiosk","Kiosk","West",3],
+    ["Market Square Kiosk","Kiosk","South",3],["Highway Fuel Stop","Petrol station","North",1],["City Fuel","Petrol station","East",2],
+    ["Ring Road Petrol","Petrol station","West",3],["Sun Pharmacy","Pharmacy","North",2],["Health Corner Pharmacy","Pharmacy","South",2],
+    ["Old Town Pharmacy","Pharmacy","East",3],
+  ];
+  const products = cat.map((c, i) => ({ id: "P" + String(i + 1).padStart(3, "0"), name: c[0], category: c[1], price: c[2], cost: c[3], stock: 0, pack: c[4] }));
+  const customers = shops.map((s, i) => ({ id: "C" + String(i + 1).padStart(3, "0"), name: s[0], type: s[1], region: s[2], priority: s[3] }));
+  const like = {};
+  for (const c of customers) { like[c.id] = {}; for (const p of products) { let v = Math.min(.95, tastes[c.type][p.category] * (.35 + r() * .9)); like[c.id][p.id] = v < .15 ? 0 : v } }
+  const trend = {}; for (const p of products) trend[p.id] = .6 + r() * .8;
+  const sales = [], monthly = {}, start = todayDay - 364;
+  for (let w = 0; w < 52; w++) {
+    const t = w / 51;
+    customers.forEach((c, ci) => {
+      const d = start + w * 7 + (ci & 3);
+      if (d > todayDay) return;
+      for (const p of products) {
+        if (r() >= like[c.id][p.id] * (1 - t + t * trend[p.id]) * .55) continue;
+        const q = Math.max(1, Math.round(p.pack * size[c.type] * (.5 + r())));
+        sales.push({ d, c: c.id, p: p.id, q });
+        if (w >= 48) monthly[p.id] = (monthly[p.id] || 0) + q;
+      }
+    });
+  }
+  for (const p of products) { const f = [.6, .9, 1.3, 1.8, 2.4][Math.floor(r() * 5)]; p.stock = Math.round((monthly[p.id] || 0) * f / p.pack) * p.pack }
+  return { products, customers, sales, sample: true };
+}
+
+// ---------- signals, model, allocation, ranking (ported from core/) ----------
+function signalTable(data, asOf) {
+  const k = (c, p) => c + "\u0001" + p;
+  const q30 = new Map(), q90 = new Map(), q180 = new Map(), months = new Map(), last = new Map(), catQty = new Map(), custQty = new Map();
+  const add = (m, key, v) => m.set(key, (m.get(key) || 0) + v);
+  const prodById = data.byP;
+  for (const s of data.sales) {
+    if (s.d > asOf) continue;
+    const key = k(s.c, s.p);
+    if (!last.has(key) || s.d > last.get(key)) last.set(key, s.d);
+    const age = asOf - s.d;
+    if (age >= 180) continue;
+    if (age < 30) add(q30, key, s.q);
+    if (age < 90) add(q90, key, s.q);
+    add(q180, key, s.q);
+    if (!months.has(key)) months.set(key, new Set());
+    months.get(key).add(Math.floor(age / 30));
+    const p = prodById[s.p]; if (!p) continue;
+    add(catQty, k(s.c, p.category), s.q); add(custQty, s.c, s.q);
+  }
+  const typeOf = {}, typeCount = {};
+  for (const c of data.customers) { typeOf[c.id] = c.type; typeCount[c.type] = (typeCount[c.type] || 0) + 1 }
+  const buyers = new Map(), typeBuyers = new Map(), typeMonthly = new Map();
+  for (const [key, q] of q90) { if (q <= 0) continue; const [c, p] = key.split("\u0001"); if (!typeOf[c]) continue; add(buyers, p, 1); add(typeBuyers, k(typeOf[c], p), 1) }
+  for (const [key, q] of q180) { const [c, p] = key.split("\u0001"); if (!typeOf[c]) continue; const tk = k(typeOf[c], p); if (!typeMonthly.has(tk)) typeMonthly.set(tk, []); typeMonthly.get(tk).push(q / months.get(key).size) }
+  const nC = Math.max(1, data.customers.length);
+  return (c, p) => {
+    const key = k(c.id, p.id), same = typeCount[c.type] || 1, mine = (q90.get(key) || 0) > 0 ? 1 : 0, tot = custQty.get(c.id);
+    const tm = typeMonthly.get(k(c.type, p.id)); let peerMonthly = 0;
+    if (tm) { const s = [...tm].sort((a, b) => a - b); peerMonthly = s[Math.floor(s.length / 2)] }
+    return {
+      qty30: q30.get(key) || 0, qty90: q90.get(key) || 0, qty180: q180.get(key) || 0,
+      monthsBought: months.has(key) ? months.get(key).size : 0,
+      daysSinceLast: last.has(key) ? asOf - last.get(key) : null,
+      peerShare: same > 1 ? ((typeBuyers.get(k(c.type, p.id)) || 0) - mine) / (same - 1) : 0,
+      overallShare: (buyers.get(p.id) || 0) / nC,
+      marginPercent: p.price > 0 ? (p.price - p.cost) / p.price : 0,
+      categoryShare: tot ? (catQty.get(k(c.id, p.category)) || 0) / tot : 0,
+      peerMonthly,
+    };
+  };
+}
+const features = s => [Math.log1p(s.qty30), Math.log1p(s.qty90), s.monthsBought / 6, s.daysSinceLast == null ? 0 : Math.exp(-s.daysSinceLast / 45), s.peerShare, s.overallShare, s.marginPercent, s.categoryShare];
+const monthlyQty = (s, pack) => s.monthsBought > 0 ? s.qty180 / s.monthsBought : s.peerMonthly > 0 ? s.peerMonthly : pack;
+
+function auc(scored) {
+  const pos = scored.filter(x => x[1]).length, neg = scored.length - pos;
+  if (!pos || !neg) return null;
+  const s = [...scored].sort((a, b) => a[0] - b[0]); let rank = 0, i = 0;
+  while (i < s.length) { let j = i; while (j + 1 < s.length && s[j + 1][0] === s[i][0]) j++; const avg = (i + j) / 2 + 1; for (let t = i; t <= j; t++) if (s[t][1]) rank += avg; i = j + 1 }
+  return (rank - pos * (pos + 1) / 2) / (pos * neg);
+}
+function fit(ex) {
+  const xs = ex.map(e => features(e[0])), ys = ex.map(e => e[1] ? 1 : 0), n = xs.length, d = xs[0].length;
+  const mean = Array(d).fill(0), std = Array(d).fill(0);
+  for (const x of xs) for (let j = 0; j < d; j++) mean[j] += x[j] / n;
+  for (const x of xs) for (let j = 0; j < d; j++) std[j] += (x[j] - mean[j]) ** 2 / n;
+  for (let j = 0; j < d; j++) { std[j] = Math.sqrt(std[j]); if (std[j] < 1e-9) std[j] = 1 }
+  const z = xs.map(x => x.map((v, j) => (v - mean[j]) / std[j]));
+  const w = Array(d).fill(0), pos = ys.reduce((a, b) => a + b, 0); let b = Math.log((pos + 1) / (n - pos + 1));
+  for (let it = 0; it < 300; it++) {
+    const gw = Array(d).fill(0); let gb = 0;
+    for (let i = 0; i < n; i++) { let s = b; for (let j = 0; j < d; j++) s += w[j] * z[i][j]; const e = 1 / (1 + Math.exp(-s)) - ys[i]; for (let j = 0; j < d; j++) gw[j] += e * z[i][j]; gb += e }
+    for (let j = 0; j < d; j++) w[j] -= .5 * (gw[j] / n + 1e-3 * w[j]);
+    b -= .5 * gb / n;
+  }
+  return { prob(s) { const x = features(s); let v = b; for (let j = 0; j < d; j++) v += w[j] * (x[j] - mean[j]) / std[j]; return 1 / (1 + Math.exp(-v)) } };
+}
+function thin(ex, max = 50000) { if (ex.length <= max) return ex; const step = ex.length / max; return Array.from({ length: max }, (_, i) => ex[Math.floor(i * step)]) }
+function train(data) {
+  if (!data.sales.length) return null;
+  let lastDay = -Infinity, firstDay = Infinity; for (const s of data.sales) { if (s.d > lastDay) lastDay = s.d; if (s.d < firstDay) firstDay = s.d }
+  const sets = [];
+  for (let k = 1; k <= 6; k++) {
+    const cut = lastDay - 30 * k; if (cut - firstDay < 60) continue;
+    const table = signalTable(data, cut), bought = new Set();
+    for (const s of data.sales) if (s.d > cut && s.d <= cut + 30 && s.q > 0) bought.add(s.c + "\u0001" + s.p);
+    const ex = []; for (const c of data.customers) for (const p of data.products) ex.push([table(c, p), bought.has(c.id + "\u0001" + p.id)]);
+    sets.push(ex);
+  }
+  if (!sets.length) return null;
+  const all = thin(sets.flat());
+  if (all.every(e => e[1]) || all.every(e => !e[1])) return null;
+  let check = null;
+  if (sets.length >= 2) { const m = fit(thin(sets.slice(1).flat())); check = auc(sets[0].map(e => [m.prob(e[0]), e[1]])) }
+  const m = fit(all); m.check = check; m.examples = all.length; return m;
+}
+
+const weight = p => p === 1 ? 3 : p === 2 ? 2 : 1;
+function allocate(stock, pack, reqs) {
+  pack = Math.max(1, pack);
+  const want = {}, by = {}; for (const r of reqs) { by[r.id] = r; if (r.q > 0) want[r.id] = Math.ceil(r.q / pack) }
+  const ids = Object.keys(want), stockPacks = Math.floor(Math.max(0, stock) / pack), given = {};
+  if (ids.reduce((a, id) => a + want[id], 0) <= stockPacks) ids.forEach(id => given[id] = want[id]);
+  else {
+    const share = {}; let active = new Set(ids), rem = stockPacks;
+    while (active.size && rem > 1e-9) {
+      const tw = [...active].reduce((a, id) => a + want[id] * weight(by[id].priority), 0);
+      const full = [...active].filter(id => rem * want[id] * weight(by[id].priority) / tw >= want[id]);
+      if (!full.length) { active.forEach(id => share[id] = rem * want[id] * weight(by[id].priority) / tw); break }
+      full.forEach(id => { share[id] = want[id]; rem -= want[id]; active.delete(id) });
+    }
+    for (const id in share) given[id] = Math.floor(share[id] + 1e-9);
+    let left = stockPacks - Object.values(given).reduce((a, b) => a + b, 0);
+    const order = [...ids].sort((a, b) => by[a].priority - by[b].priority || by[b].score - by[a].score);
+    while (left > 0) {
+      const open = order.filter(id => (given[id] || 0) < want[id]); if (!open.length) break;
+      for (const id of open) { if (!left) break; given[id] = (given[id] || 0) + 1; left-- }
+    }
+  }
+  const out = {}; for (const id in given) if (given[id] > 0) out[id] = given[id] * pack; return out;
+}
+
+function buildEngine(data, orders, mw) {
+  const model = train(data);
+  let asOf = -Infinity; for (const s of data.sales) if (s.d > asOf) asOf = s.d; if (asOf === -Infinity) asOf = todayDay;
+  const sig = signalTable(data, asOf);
+  const ordered = {}; for (const o of orders) for (const l of o.lines) ordered[l.p] = (ordered[l.p] || 0) + l.q;
+  const hasOrder = new Set(orders.map(o => o.c));
+  const available = p => Math.max(0, p.stock - (ordered[p.id] || 0));
+  const raw = {};
+  for (const c of data.customers) {
+    const rows = data.products.map(p => {
+      const s = sig(c, p);
+      const prob = model ? model.prob(s) : .6 * Math.min(1, s.monthsBought / 3) + .4 * s.peerShare;
+      const m = monthlyQty(s, p.pack);
+      const wanted = prob >= .35 ? Math.max(1, Math.ceil(m / p.pack - 1e-9)) * p.pack : prob >= .15 ? p.pack : 0;
+      return { p, s, prob, wanted, rev: prob * m * p.price, prof: prob * m * (p.price - p.cost) };
+    });
+    const mr = Math.max(...rows.map(r => r.rev)) || 1, mp = Math.max(...rows.map(r => r.prof)) || 1;
+    rows.forEach(r => r.score = (1 - mw) * r.rev / mr + mw * r.prof / mp);
+    rows.sort((a, b) => b.score - a.score);
+    raw[c.id] = rows;
+  }
+  const rowOf = (cid, pid) => raw[cid].find(r => r.p.id === pid);
+  const plan = {};
+  for (const p of data.products) {
+    const reqs = data.customers.filter(c => !hasOrder.has(c.id)).map(c => { const r = rowOf(c.id, p.id); return { id: c.id, q: r.wanted, priority: c.priority, score: r.score } }).filter(r => r.q > 0);
+    plan[p.id] = allocate(available(p), p.pack, reqs);
+  }
+  const reasons = (c, r) => {
+    const s = r.s, out = [];
+    out.push(s.qty30 > 0 ? `Bought ${s.qty30} in the last 30 days` : s.monthsBought >= 3 ? `Buys it most months (${s.monthsBought} of 6)` : s.daysSinceLast != null ? `Last bought ${s.daysSinceLast} days ago` : "New for this shop");
+    if (s.peerShare >= .4) out.push(`${pct(s.peerShare)} of similar shops (${c.type}) buy it`);
+    if (s.marginPercent >= .3) out.push(`Good margin (${pct(s.marginPercent)})`);
+    return out;
+  };
+  return {
+    model, asOf, available,
+    suggestions(cid) {
+      const c = data.byC[cid];
+      return raw[cid].map(r => {
+        const planned = (plan[r.p.id] || {})[cid] || 0, why = reasons(c, r), short = r.wanted > 0 && planned < r.wanted;
+        return { p: r.p, prob: r.prob, wanted: r.wanted, qty: hasOrder.has(cid) ? r.wanted : planned, why: why.slice(0, short ? 2 : 3), short };
+      });
+    },
+    stock() {
+      return data.products.map(p => {
+        const wanted = data.customers.filter(c => !hasOrder.has(c.id)).reduce((a, c) => a + rowOf(c.id, p.id).wanted, 0);
+        const planned = Object.values(plan[p.id] || {}).reduce((a, b) => a + b, 0);
+        return { p, ordered: ordered[p.id] || 0, available: available(p), wanted, planned, short: wanted > available(p) };
+      }).sort((a, b) => (b.short - a.short) || a.p.name.localeCompare(b.p.name));
+    },
+  };
+}
+
+// ---------- CSV import ----------
+function readCsv(text) {
+  text = text.replace(/^﻿/, "");
+  const first = text.split("\n").find(l => l.trim()) || "";
+  const sep = [";", "\t", ","].reduce((b, c) => first.split(c).length > first.split(b).length ? c : b, ",");
+  const rows = []; let row = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++ } else q = false } else cell += ch }
+    else if (ch === '"') q = true;
+    else if (ch === sep) { row.push(cell.trim()); cell = "" }
+    else if (ch === "\n") { row.push(cell.trim()); cell = ""; if (row.some(Boolean)) rows.push(row); row = [] }
+    else if (ch !== "\r") cell += ch;
+  }
+  row.push(cell.trim()); if (row.some(Boolean)) rows.push(row);
+  return rows;
+}
+function num(s) {
+  if (s == null) return null; let t = String(s).replace(/[^0-9,.\-]/g, ""); if (!t) return null;
+  const lc = t.lastIndexOf(","), ld = t.lastIndexOf(".");
+  if (lc >= 0 && ld >= 0) t = lc > ld ? t.replace(/\./g, "").replace(",", ".") : t.replace(/,/g, ""); else if (lc >= 0) t = t.replace(",", ".");
+  const v = parseFloat(t); return isNaN(v) ? null : v;
+}
+function day(s) {
+  s = String(s).trim(); let m;
+  if ((m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/))) return Math.floor(Date.UTC(+m[1], m[2] - 1, +m[3]) / DAY);
+  if ((m = s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})/))) return Math.floor(Date.UTC(+m[3], m[2] - 1, +m[1]) / DAY);
+  const n = parseFloat(s); if (n >= 20000 && n <= 80000) return Math.floor(n) - 25569;
+  return null;
+}
+const key = s => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+function parseRows(rows, make) {
+  if (!rows.length) return { items: [], problems: ["The file is empty."] };
+  const h = rows[0].map(key), items = [], problems = [];
+  rows.slice(1).forEach((cells, i) => {
+    const m = {}; h.forEach((k, j) => m[k] = cells[j]);
+    const get = (...ks) => { for (const k of ks) if (m[k] && m[k].trim()) return m[k].trim(); return null };
+    const r = make(get); if (typeof r === "string") problems.push(`Row ${i + 2}: ${r}.`); else items.push(r);
+  });
+  return { items, problems };
+}
+const importers = {
+  products: get => {
+    const price = num(get("price", "unit_price", "sell_price", "selling_price")); if (price == null) return "no price";
+    const id = get("id", "product_id", "sku", "code", "item_id", "item"); if (!id) return "no product id";
+    return { id, name: get("name", "product_name", "product", "description", "item_name") || id, category: get("category", "group", "product_group", "family") || "Other",
+      price, cost: num(get("cost", "unit_cost", "buy_price", "purchase_price")) ?? price * .75,
+      stock: Math.trunc(num(get("stock", "available", "on_hand", "inventory", "quantity", "qty")) || 0),
+      pack: Math.max(1, Math.trunc(num(get("pack_size", "pack", "case_size", "units_per_case")) || 1)) };
+  },
+  customers: get => {
+    const id = get("id", "customer_id", "customer", "code", "account"); if (!id) return "no customer id";
+    return { id, name: get("name", "customer_name", "shop", "store", "outlet") || id, type: get("type", "segment", "channel", "customer_type", "class") || "Shop",
+      region: get("region", "area", "territory", "city", "route") || "", priority: Math.min(3, Math.max(1, Math.trunc(num(get("priority", "tier", "rank")) || 2))) };
+  },
+  sales: get => {
+    const ds = get("date", "sale_date", "order_date", "invoice_date", "day"); if (!ds) return "no date";
+    const d = day(ds); if (d == null) return "date not understood";
+    const c = get("customer_id", "customer", "account", "outlet_id"); if (!c) return "no customer id";
+    const p = get("product_id", "product", "sku", "item_id", "item", "code"); if (!p) return "no product id";
+    const q = num(get("quantity", "qty", "units", "amount")); if (q == null) return "no quantity";
+    return { d, c, p, q: Math.trunc(q) };
+  },
+};
+
+// ---------- app state ----------
+let data, engine, orders = store.get("orders", []), mw = store.get("mw", .5);
+let tab = "customers", visiting = null, query = "", qty = {}, msg = "", confirming = null;
+function index(d) { d.byP = Object.fromEntries(d.products.map(p => [p.id, p])); d.byC = Object.fromEntries(d.customers.map(c => [c.id, c])); return d }
+function loadData() {
+  const own = store.get("data", null);
+  data = index(own && own.products && own.customers && own.sales ? own : sampleData());
+}
+function rebuild() { engine = buildEngine(data, orders, mw) }
+function saveOrders() { store.set("orders", orders) }
+
+// ---------- rendering ----------
+const $main = document.getElementById("main"), $tabs = document.getElementById("tabs"), $bar = document.getElementById("bar"), $barInner = document.getElementById("barInner");
+function render() {
+  document.getElementById("datapill").textContent = data.sample ? "Sample data" : "Your data";
+  const tabs = [["customers", "Customers"], ["stock", "Stock", engine.stock().filter(s => s.short).length], ["orders", "Orders", orders.length], ["settings", "Settings"]];
+  $tabs.innerHTML = tabs.map(([id, label, n]) => `<button role="tab" id="tab-${id}" aria-selected="${tab === id && !visiting}" data-tab="${id}">${label}${n ? `<span class="n">${n}</span>` : ""}</button>`).join("");
+  $bar.hidden = true;
+  if (visiting) return renderVisit();
+  ({ customers: renderCustomers, stock: renderStock, orders: renderOrders, settings: renderSettings })[tab]();
+}
+function renderCustomers() {
+  const withOrder = new Set(orders.map(o => o.c));
+  const q = query.trim().toLowerCase();
+  const list = data.customers.filter(c => !q || `${c.name} ${c.type} ${c.region}`.toLowerCase().includes(q))
+    .sort((a, b) => (withOrder.has(a.id) - withOrder.has(b.id)) || a.priority - b.priority || a.name.localeCompare(b.name));
+  const label = p => p === 1 ? "Key customer" : p === 2 ? "Regular" : "Small";
+  $main.innerHTML = `<input type="search" id="search" placeholder="Search shops" value="${esc(query)}" aria-label="Search shops">
+    ${data.sample ? `<p class="note">You are seeing made-up sample shops. Load your own files in Settings.</p>` : ""}
+    ${list.map(c => `<button class="card" data-visit="${esc(c.id)}">
+      <div class="row"><span class="grow name">${esc(c.name)}</span><span class="tag">${withOrder.has(c.id) ? "Order saved" : label(c.priority)}</span></div>
+      <div class="sub">${esc([c.type, c.region].filter(Boolean).join(" · "))}</div>
+      <div>Top picks: ${engine.suggestions(c.id).slice(0, 3).map(s => esc(s.p.name)).join(", ")}</div></button>`).join("") || `<p class="note">No shops found.</p>`}`;
+  const s = document.getElementById("search");
+  s.oninput = () => { query = s.value; const pos = s.selectionStart; renderCustomers(); const n = document.getElementById("search"); n.focus(); n.setSelectionRange(pos, pos) };
+}
+function renderVisit() {
+  const c = data.byC[visiting], list = engine.suggestions(visiting);
+  $main.innerHTML = `<div class="row"><button class="back" data-back>← All shops</button></div>
+    <div><div class="name" style="font-size:20px">${esc(c.name)}</div><div class="sub">${esc([c.type, c.region].filter(Boolean).join(" · "))}</div></div>
+    <p class="note">Best products for this shop, best first. The amounts are suggestions; change them as you like.</p>
+    ${list.map((s, i) => { const q = qty[s.p.id] || 0; return `<div class="card prod${q ? " on" : ""}">
+      <div class="rank">${i + 1}</div>
+      <div style="min-width:0"><div class="name">${esc(s.p.name)}</div>
+        <div class="sub"><span class="num">${euro(s.p.price)}</span> · ${pct(s.prob)} likely to buy · <span class="num">${engine.available(s.p)}</span> in stock</div>
+        <ul class="why">${s.short ? `<li class="short">Stock is short, shared with other shops</li>` : ""}${s.why.map(w => `<li>${esc(w)}</li>`).join("")}</ul></div>
+      <div class="step"><div class="ctl"><button data-dec="${esc(s.p.id)}" aria-label="Less ${esc(s.p.name)}">−</button><span class="q">${q}</span><button data-inc="${esc(s.p.id)}" aria-label="More ${esc(s.p.name)}">+</button></div>${s.p.pack > 1 ? `<small>packs of ${s.p.pack}</small>` : ""}</div>
+    </div>` }).join("")}`;
+  const units = Object.values(qty).reduce((a, b) => a + b, 0), total = list.reduce((a, s) => a + (qty[s.p.id] || 0) * s.p.price, 0);
+  $bar.hidden = false;
+  $barInner.innerHTML = `<div style="flex:1"><div class="sub"><span class="num">${units}</span> units</div><div class="num" style="font-size:18px;font-weight:600">${euro(total)}</div></div>
+    <button class="btn ghost" data-back>Cancel</button><button class="btn" data-save ${units ? "" : "disabled"}>Save order</button>`;
+}
+function renderStock() {
+  const lines = engine.stock();
+  $main.innerHTML = `<p class="note">When shops want more than you have, the app shares it out. Key customers get 3 times the weight of small ones.</p>
+    ${lines.map(l => `<div class="card"><div class="row"><span class="grow name">${esc(l.p.name)}</span>${l.short ? `<span class="tag warn">Short by <span class="num">${l.wanted - l.available}</span></span>` : `<span class="tag">Enough</span>`}</div>
+      <div class="stats"><span>Left to sell <b class="num">${l.available}</b></span><span>Shops want <b class="num">${l.wanted}</b></span><span>Planned <b class="num">${l.planned}</b></span>${l.ordered ? `<span>Ordered <b class="num">${l.ordered}</b></span>` : ""}</div>
+      <div class="meter${l.short ? " short" : ""}"><span style="width:${l.wanted ? Math.min(100, l.available / l.wanted * 100) : 100}%"></span></div></div>`).join("")}`;
+}
+function ordersCsv() {
+  const rows = [["order_id", "created_at", "customer_id", "customer_name", "product_id", "product_name", "quantity", "price", "value"]];
+  for (const o of orders) for (const l of o.lines) { const p = data.byP[l.p]; rows.push([o.id, o.at, o.c, data.byC[o.c]?.name || "", l.p, p?.name || "", l.q, p ? p.price.toFixed(2) : "", p ? (p.price * l.q).toFixed(2) : ""]) }
+  return rows.map(r => r.map(v => /[",;\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v).join(",")).join("\n");
+}
+function renderOrders() {
+  const list = [...orders].sort((a, b) => b.at.localeCompare(a.at));
+  $main.innerHTML = `<div class="confirm">${confirming === "clear"
+      ? `<span>Clear all orders? Their stock goes back.</span><button class="btn danger" data-clear-yes>Clear</button><button class="btn ghost" data-clear-no>Cancel</button>`
+      : `<button class="btn" data-copy ${list.length ? "" : "disabled"}>Copy orders as CSV</button><button class="btn ghost" data-clear ${list.length ? "" : "disabled"}>Clear all</button>`}</div>
+    ${msg ? `<p class="msg">${esc(msg)}</p>` : ""}
+    ${list.length ? "" : `<p class="note">No orders yet. Open a shop to take one.</p>`}
+    ${list.map(o => { const v = o.lines.reduce((a, l) => a + (data.byP[l.p]?.price || 0) * l.q, 0); return `<div class="card">
+      <div class="row"><span class="grow name">${esc(data.byC[o.c]?.name || o.c)}</span><button class="back" data-del="${esc(o.id)}">Delete</button></div>
+      <div class="sub">${esc(o.at)} · ${o.lines.length} products · <span class="num">${euro(v)}</span></div>
+      <div class="sub">${o.lines.map(l => `${l.q} × ${esc(data.byP[l.p]?.name || l.p)}`).join(", ")}</div></div>` }).join("")}
+    ${list.length ? `<pre class="csv" id="csv">${esc(ordersCsv())}</pre>` : ""}`;
+}
+function renderSettings() {
+  const m = engine.model;
+  $main.innerHTML = `<div class="card set">
+      <h2>How to rank products</h2>
+      <input type="range" id="mw" min="0" max="1" step="0.05" value="${mw}" aria-label="Sell more or earn more per item">
+      <div class="ends"><span>Sell more</span><span>Earn more per item</span></div>
+    </div>
+    <div class="card set">
+      <h2>Your data</h2>
+      <p class="note">CSV files (comma or semicolon), first row = column names. In Excel use File › Save as › CSV.</p>
+      ${[["products", "Products", "product_id, name, category, price, cost, stock, pack_size"], ["customers", "Customers", "customer_id, name, type, region, priority (1 key … 3 small)"], ["sales", "Sales history", "date, customer_id, product_id, quantity"]]
+        .map(([k, l, cols]) => `<label class="file" for="f-${k}"><span><b>${l}</b><br><span class="sub">${cols}</span></span><input type="file" id="f-${k}" data-import="${k}" accept=".csv,.txt,text/csv"></label>`).join("")}
+      ${msg ? `<p class="msg">${esc(msg)}</p>` : ""}
+      ${confirming === "sample" ? `<div class="confirm"><span>Replace everything with sample data?</span><button class="btn danger" data-sample-yes>Replace</button><button class="btn ghost" data-sample-no>Cancel</button></div>`
+        : `<div><button class="btn ghost" data-sample>Go back to sample data</button></div>`}
+    </div>
+    <div class="card set">
+      <h2>About the ranking</h2>
+      <p class="note">${data.products.length} products, ${data.customers.length} shops, ${data.sales.length} sales lines up to ${dayStr(engine.asOf)}.</p>
+      <p class="note">${!m ? "Not enough sales history to learn from yet (about 3 months needed). Using simple rules for now."
+        : `The app learned from ${m.examples.toLocaleString("en")} past shop-and-product months.` + (m.check != null ? ` Tested on the latest month it had not seen, it put real buys above non-buys ${pct(m.check)} of the time.` : "")}</p>
+      <p class="note">Everything runs in this browser. Nothing is uploaded. The Android app works the same way, offline.</p>
+    </div>`;
+  document.getElementById("mw").onchange = e => { mw = +e.target.value; store.set("mw", mw); rebuild(); render() };
+}
+
+// ---------- events ----------
+document.addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  const d = t.dataset;
+  if (d.tab) { tab = d.tab; visiting = null; msg = ""; confirming = null; render(); window.scrollTo(0, 0) }
+  else if (d.visit) { visiting = d.visit; qty = {}; engine.suggestions(visiting).forEach(s => { if (s.qty) qty[s.p.id] = s.qty }); render(); window.scrollTo(0, 0) }
+  else if ("back" in d) { visiting = null; render() }
+  else if (d.inc || d.dec) {
+    const id = d.inc || d.dec, p = data.byP[id];
+    qty[id] = Math.max(0, (qty[id] || 0) + (d.inc ? p.pack : -p.pack));
+    const y = window.scrollY; render(); window.scrollTo(0, y);
+  }
+  else if ("save" in d) {
+    const now = new Date(), at = now.toISOString().slice(0, 16).replace("T", " ");
+    orders.push({ id: "O" + now.getTime(), c: visiting, at, lines: Object.entries(qty).filter(([, q]) => q > 0).map(([p, q]) => ({ p, q })) });
+    saveOrders(); visiting = null; tab = "orders"; msg = "Order saved."; rebuild(); render(); window.scrollTo(0, 0);
+  }
+  else if (d.del) { orders = orders.filter(o => o.id !== d.del); saveOrders(); msg = ""; rebuild(); render() }
+  else if ("clear" in d) { confirming = "clear"; render() }
+  else if ("clearNo" in d || "sampleNo" in d) { confirming = null; render() }
+  else if ("clearYes" in d) { orders = []; saveOrders(); confirming = null; msg = "Orders cleared."; rebuild(); render() }
+  else if ("copy" in d) {
+    const text = ordersCsv();
+    const done = () => { msg = "Copied. Paste it into an email or a spreadsheet."; render() };
+    const fallback = () => { const pre = document.getElementById("csv"); const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); msg = "Selected below. Copy it with your keyboard or long-press."; const m = document.querySelector(".msg"); if (m) m.textContent = msg; else pre.insertAdjacentHTML("beforebegin", `<p class="msg">${msg}</p>`) };
+    try { navigator.clipboard.writeText(text).then(done, fallback) } catch (err) { fallback() }
+  }
+  else if ("sample" in d) { confirming = "sample"; render() }
+  else if ("sampleYes" in d) { store.del("data"); orders = []; saveOrders(); data = index(sampleData()); confirming = null; msg = "Sample data loaded."; rebuild(); render() }
+});
+document.addEventListener("change", e => {
+  const kind = e.target.dataset && e.target.dataset.import; if (!kind) return;
+  const f = e.target.files[0]; if (!f) return;
+  if (/\.xlsx?$/i.test(f.name)) { msg = "This browser version reads CSV. In Excel use File › Save as › CSV, or use the Android app, which reads Excel too."; render(); return }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const r = parseRows(readCsv(String(reader.result)), importers[kind]);
+    if (!r.items.length) { msg = "Nothing loaded. " + (r.problems[0] || "Check the column names."); render(); return }
+    data = index({ products: data.products, customers: data.customers, sales: data.sales, [kind]: r.items, sample: false });
+    store.set("data", { products: data.products, customers: data.customers, sales: data.sales, sample: false });
+    orders = []; saveOrders();
+    msg = `Loaded ${r.items.length} ${kind === "sales" ? "sales lines" : kind}.` + (r.problems.length ? ` Skipped ${r.problems.length} rows (${r.problems[0]})` : "");
+    rebuild(); render();
+  };
+  reader.readAsText(f);
+});
+
+loadData(); rebuild(); render();
+</script>
