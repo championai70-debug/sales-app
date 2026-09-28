@@ -21,8 +21,12 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Test the ranking and stock logic
-        run: ./gradlew :core:test --no-daemon
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test the planning logic
+        run: node --test tests/plan.test.mjs
 
       - name: Build the APK
         run: ./gradlew :app:assembleRelease --no-daemon

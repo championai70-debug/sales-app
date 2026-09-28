@@ -1,64 +1,49 @@
 # Sales App
 
-An Android app for salespeople. For every shop you visit it shows **which products to
-offer first** and **how many**, and it **shares out limited stock** fairly between shops.
-The ranking is a small machine-learning model that learns from your own sales history
-**on the phone**. It needs no internet, no server and no AI subscription.
+Upload your sales, set a budget, and see what to buy: **euros per category** and
+**units and euros per article**. Everything runs on the device; nothing is uploaded.
 
-## Install on a phone
+- **Try it in a browser:** open `web/index.html` (also published as a private Claude artifact).
+- **Android:** https://github.com/championai70-debug/sales-app/releases/download/latest-apk/SalesApp.apk
+  (open it on the phone, allow installing from your browser if asked). New builds install
+  over the old one and keep your data.
 
-1. On the phone, open
-   **https://github.com/championai70-debug/sales-app/releases/download/latest-apk/SalesApp.apk**
-2. Open the downloaded file. If Android asks, allow installing apps from your browser.
-3. Open **Sales App**. It starts with sample data so you can try it straight away.
+## How to use it
 
-New builds install over the old one and keep your data.
+1. **Your data.** Load two CSV files (comma or semicolon; in Excel use *Save as › CSV*):
+   - Articles: `article_id, name, category, price, cost, stock, brand, color`
+   - Sales history: `date, article_id, units` (daily or weekly rows; 12+ weeks is best)
 
-## Using it
-
-| Tab | What it does |
-|---|---|
-| Customers | Your shops. Tap one to see its ranked products with suggested amounts and the reasons. Change amounts with − / + and save the order. |
-| Stock | For each product: how much is left, how much shops want, how much the app planned. Red means demand is higher than stock. |
-| Orders | Saved orders. **Send all** shares them as CSV (email, WhatsApp, Drive…). **Clear all** starts a new round and gives the stock back. |
-| Settings | Load your own files, choose "sell more" vs "earn more per item", see how well the model tested. |
-
-### Your files
-
-CSV (comma or semicolon) or Excel `.xlsx`, first row = column names:
-
-- **Products:** `product_id, name, category, price, cost, stock, pack_size`
-- **Customers:** `customer_id, name, type, region, priority` (1 = key customer, 3 = small)
-- **Sales history:** `date, customer_id, product_id, quantity` (about 3+ months works best)
-
-Similar column names ("SKU", "Qty", "Outlet"…) are recognised too. German number and date
-formats (`1,49`, `05.01.2026`) are fine.
+   Until you load yours, the app shows a sample sports shop.
+2. **Your plan.** Budget (at cost), how many weeks to plan for, target sell-through,
+   smallest order per article. The results update as you change them.
+3. **What to buy.** Totals, euros per category, and a table of units and euros per
+   article. Tap a category to filter. *Copy plan as CSV* to paste into Excel.
 
 ## How it decides
 
-1. **Chance to buy.** For every shop and product the app looks at: units in the last 30 and
-   90 days, how many of the last 6 months they bought it, how recently, how many similar
-   shops buy it, margin and how well it fits the shop's range. A logistic-regression model
-   learns from past months which of these signals predict a purchase in the next 30 days.
-   It is tested on the newest month it did not learn from; the score is shown in Settings.
-2. **How many.** What the shop usually takes in a month, rounded up to whole packs.
-3. **Order of the list.** Expected sales value and expected profit, mixed by the Settings
-   slider.
-4. **Sharing stock.** If shops want more than you have, each gets a share in proportion to
-   what it wants; key customers count 3x, regular 2x, small 1x. Nobody gets more than
-   they want, and the total never goes over stock.
+1. **Top sellers.** Gradient-boosted trees (the idea behind XGBoost), written in plain
+   JavaScript, predict each article's weekly sales from recent sales, trend, price,
+   margin, age and category momentum. It starts from the 4-week average and learns
+   corrections. It is tested on the latest 4 weeks it did not see; the result is shown
+   under "How the app decides". Top 20% of forecast revenue = *Top seller*, bottom half = *Slow*.
+2. **New articles** (no sales yet) take the forecast of their 3 most similar articles
+   (category, price, brand, colour), minus 20%.
+3. **Sell-through** = units sold in the last 8 weeks ÷ (sold + stock now).
+4. **Need** per article = forecast for the period ÷ target sell-through − stock.
+5. **Euros per category** = budget split by each category's need at cost, weighted by
+   the square root of its sell-through index (capped at 125% of need).
+6. **Units per article** = the category's euros split by need (top sellers ×1.25, slow
+   ×0.8), capped at 150% of need, turned into units at cost. Orders below the smallest
+   order are dropped.
 
 ## For developers
 
-- `core/`: plain Kotlin, no Android: file import (CSV/xlsx), the model (`DemandModel`),
-  stock sharing (`Allocator`), ranking (`Engine`), sample data. Tests: `./gradlew :core:test`.
-- `app/`: Jetpack Compose UI. Data is kept as CSV files in the app's private folder.
-- `.github/workflows/build-apk.yml`: every push runs the tests, builds the APK and puts it
-  on the `latest-apk` release.
+- `web/index.html` is the whole app (page content only; the web host or the Android
+  shell adds the `<html>` around it).
+- `tests/plan.test.mjs` tests the planning logic: `node --test tests/plan.test.mjs`.
+- `app/` is a small Android shell that shows `web/index.html` from its assets in a WebView.
+- `.github/workflows/build-apk.yml` runs the tests, builds the APK and publishes it on the
+  `latest-apk` release on every push.
 - The APK is signed with a test key in the repo (`app/test-signing.keystore`) so updates
   install over each other. Make a private key before publishing on Google Play.
-
-## Try it in a browser
-
-`web/index.html` is the same app as one web page (sample data, ranking, stock sharing,
-CSV import, orders kept in the browser). Open it in any browser; nothing is uploaded.

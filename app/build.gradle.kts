@@ -3,7 +3,6 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     id("com.android.application")
     kotlin("android")
-    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 // Every GitHub Actions build gets a higher version number so phones accept it as an update.
@@ -18,8 +17,11 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = buildNumber
-        versionName = "0.1.$buildNumber"
+        versionName = "0.2.$buildNumber"
     }
+
+    // The app shows the same page as the browser version.
+    sourceSets["main"].assets.srcDirs("../web")
 
     signingConfigs {
         // Test key, kept in the repo on purpose so every build can update the last one.
@@ -43,10 +45,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
-    buildFeatures {
-        compose = true
-    }
 }
 
 kotlin {
@@ -54,12 +52,6 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":core"))
-    implementation(platform("androidx.compose:compose-bom:2024.12.01"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-core")
-    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.activity:activity-ktx:1.9.3")
     implementation("androidx.core:core-ktx:1.15.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 }
