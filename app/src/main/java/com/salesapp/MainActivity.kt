@@ -5,10 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
@@ -34,15 +31,6 @@ class MainActivity : ComponentActivity() {
         web = WebView(this)
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
-        // The 3D library normally comes from a CDN; serve the copy in the APK so 3D works offline.
-        web.webViewClient = object : WebViewClient() {
-            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
-                if (request.url.toString() == THREE_URL) {
-                    WebResourceResponse("text/javascript", "utf-8", assets.open("three.min.js"))
-                } else {
-                    null
-                }
-        }
         web.webChromeClient = object : WebChromeClient() {
             override fun onShowFileChooser(
                 view: WebView,
@@ -77,7 +65,6 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         const val ORIGIN = "https://sales-app.local/"
-        const val THREE_URL = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
         const val SHELL_START = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
             "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
             "<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body>"
