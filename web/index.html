@@ -1,0 +1,536 @@
+<title>Sales App</title>
+<meta name="description" content="Upload your sales, set a budget, and see how many units and euros to buy per category and article.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500&display=swap">
+<style>
+/* Layout: one calm column. Three inputs, one answer, a list of categories that open to their articles. */
+:root {
+  --bg: #ffffff; --soft: #f4f4f6; --line: #e7e7ec; --ink: #111114; --muted: #6b6b76; --faint: #a0a0aa;
+  --accent: #ff5a36; --accent-ink: #ffffff; --bar: #111114; --good: #16804a;
+  --sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f0f12; --soft: #1a1a1f; --line: #2a2a31; --ink: #f4f4f6; --muted: #a2a2ad; --faint: #6d6d78;
+  --accent: #ff6a48; --accent-ink: #1a0a05; --bar: #f4f4f6; --good: #5fd497; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f0f12; --soft: #1a1a1f; --line: #2a2a31; --ink: #f4f4f6; --muted: #a2a2ad; --faint: #6d6d78;
+  --accent: #ff6a48; --accent-ink: #1a0a05; --bar: #f4f4f6; --good: #5fd497; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--sans); -webkit-font-smoothing: antialiased }
+.wrap { max-width: 640px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 80px; display: grid; gap: 36px }
+button, input { font: inherit; color: inherit }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px }
+.num { font-variant-numeric: tabular-nums }
+.muted { color: var(--muted) }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px }
+.brand i { width: 10px; height: 10px; border-radius: 3px; background: var(--accent) }
+
+/* inputs */
+.inputs { display: grid; gap: 0; border: 1px solid var(--line); border-radius: 18px; overflow: hidden }
+.field { display: flex; align-items: center; gap: 16px; padding: 16px 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; min-width: 0 }
+.field:last-child { border-bottom: 0 }
+.field > label, .field > .lab { flex: 1; min-width: 120px; font-weight: 500 }
+.field .sub { display: block; font-size: 13px; color: var(--muted); font-weight: 400 }
+.file { position: relative; cursor: pointer }
+.file input { position: absolute; width: 1px; height: 1px; opacity: 0 }
+.pick { border: 0; border-radius: 99px; padding: 8px 16px; background: var(--soft); font-weight: 600; font-size: 14px; cursor: pointer; white-space: nowrap }
+.file:hover .pick { background: var(--line) }
+.file.over { background: var(--soft) }
+.money { display: flex; align-items: baseline; gap: 2px; font-size: 20px; font-weight: 600 }
+.money input { border: 0; background: transparent; font-size: 20px; font-weight: 600; width: 8.5ch; text-align: right; padding: 0 }
+.money input:focus { outline: none }
+.field:focus-within { background: var(--soft) }
+.seg { display: inline-flex; background: var(--soft); border-radius: 99px; padding: 3px; gap: 2px }
+.seg button { border: 0; background: transparent; border-radius: 99px; padding: 6px 12px; font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer }
+.seg button[aria-pressed="true"] { background: var(--bg); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .12) }
+details.more { font-size: 14px }
+details.more summary { cursor: pointer; color: var(--muted); list-style: none; display: inline-flex; gap: 6px; align-items: center }
+details.more summary::before { content: "+"; font-weight: 600 }
+details.more[open] summary::before { content: "–" }
+details.more .inputs { margin-top: 12px }
+input[type="range"] { width: 150px; accent-color: var(--ink) }
+.rv { font-weight: 600; min-width: 4ch; text-align: right }
+.msg { margin: 8px 2px 0; font-size: 14px; color: var(--good) } .msg.bad { color: var(--accent) }
+
+/* answer */
+.answer { display: grid; gap: 8px }
+.answer .eyebrow { font-size: 14px; color: var(--muted); margin: 0 }
+.answer h1 { margin: 0; font-size: clamp(34px, 8vw, 52px); line-height: 1.05; font-weight: 700; letter-spacing: -.035em; text-wrap: balance }
+.answer h1 em { font-style: normal; color: var(--accent) }
+.answer p { margin: 0; color: var(--muted) }
+.trust { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); background: none; border: 0; padding: 0; cursor: pointer; text-align: left }
+.trust b { color: var(--good); font-weight: 600 }
+.trust u { text-underline-offset: 3px }
+.trustbox { font-size: 14px; color: var(--muted); background: var(--soft); border-radius: 14px; padding: 14px 16px; display: grid; gap: 6px }
+.trustbox div { display: flex; justify-content: space-between; gap: 12px }
+.trustbox b { color: var(--ink); font-weight: 600 }
+
+/* categories */
+.list { display: grid }
+.cat { border-top: 1px solid var(--line) }
+.cat:last-child { border-bottom: 1px solid var(--line) }
+.cat > button { width: 100%; border: 0; background: none; text-align: left; padding: 16px 2px; display: grid; gap: 8px; cursor: pointer }
+.cat .top { display: flex; align-items: baseline; gap: 12px }
+.cat .name { flex: 1; font-weight: 600; font-size: 17px; min-width: 0 }
+.cat .eur { font-weight: 600; font-size: 17px }
+.cat .chev { color: var(--faint); transition: transform .2s; display: inline-block; width: 1em; text-align: center }
+.cat[data-open="true"] .chev { transform: rotate(90deg) }
+.track { height: 8px; border-radius: 4px; background: var(--soft); overflow: hidden }
+.track i { display: block; height: 100%; background: var(--bar); border-radius: 4px; transition: width .6s cubic-bezier(.2, .8, .2, 1) }
+.cat .meta { font-size: 13px; color: var(--muted) }
+.arts { padding: 0 2px 14px 2px; display: grid; gap: 2px }
+.art { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; align-items: baseline; padding: 8px 0; border-top: 1px dashed var(--line); font-size: 15px }
+.art:first-child { border-top: 0 }
+.art .an { min-width: 0 }
+.art .tag { font-size: 12px; color: var(--accent); font-weight: 600; margin-left: 6px; white-space: nowrap }
+.art .tag.new { color: var(--muted) }
+.art .u { color: var(--muted); white-space: nowrap }
+.art .e { font-weight: 600; white-space: nowrap; min-width: 6ch; text-align: right }
+.art.none { color: var(--faint) }
+.foot { display: flex; gap: 10px; flex-wrap: wrap; align-items: center }
+.btn { border: 0; border-radius: 99px; padding: 12px 20px; font-weight: 600; background: var(--accent); color: var(--accent-ink); cursor: pointer }
+.btn.ghost { background: var(--soft); color: var(--ink) }
+pre.csv { margin: 0; padding: 12px; background: var(--soft); border-radius: 12px; font: 12px/1.5 var(--mono); overflow: auto; max-height: 200px }
+.help { font-size: 14px; color: var(--muted); display: grid; gap: 6px }
+.help code { font: 13px var(--mono); background: var(--soft); padding: 1px 6px; border-radius: 6px; color: var(--ink) }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important } }
+</style>
+
+<div class="wrap">
+  <div class="brand"><i aria-hidden="true"></i>Sales App</div>
+
+  <section>
+    <div class="inputs">
+      <label class="field file" id="drop-sales" for="f-sales">
+        <input type="file" id="f-sales" accept=".csv,.txt,text/csv">
+        <span class="lab">Sales file<span class="sub" id="salesinfo"></span></span>
+        <span class="pick">Upload CSV</span>
+      </label>
+      <div class="field">
+        <label for="p-budget">Budget<span class="sub">What you can spend, at cost</span></label>
+        <div class="money"><span>€</span><input id="p-budget" inputmode="numeric" autocomplete="off"></div>
+      </div>
+      <div class="field">
+        <span class="lab" id="tf-lab">Time frame</span>
+        <div class="seg" id="presets" role="group" aria-labelledby="tf-lab">
+          <button data-w="2">2 weeks</button><button data-w="4">Month</button><button data-w="13">Season</button>
+        </div>
+      </div>
+    </div>
+    <p class="msg" id="loadmsg" hidden></p>
+  </section>
+
+  <section class="answer" aria-live="polite">
+    <p class="eyebrow" id="a-eyebrow"></p>
+    <h1 id="a-head"></h1>
+    <p id="a-sub"></p>
+    <button class="trust" id="trust" aria-expanded="false"></button>
+    <div class="trustbox" id="trustbox" hidden></div>
+  </section>
+
+  <section class="list" id="cats" aria-label="Categories"></section>
+
+  <section class="foot">
+    <button class="btn" id="copy">Copy plan for Excel</button>
+    <button class="btn ghost" id="use-sample" hidden>Use sample data</button>
+    <p class="msg" id="copymsg" hidden style="flex-basis:100%;margin:0"></p>
+    <pre class="csv" id="csv" hidden style="flex-basis:100%"></pre>
+  </section>
+
+  <details class="more">
+    <summary>More settings and help</summary>
+    <div class="inputs">
+      <div class="field">
+        <label for="p-weeks">Exact weeks<span class="sub">Any time frame from 1 to 26 weeks</span></label>
+        <input type="range" id="p-weeks" min="1" max="26" step="1"><span class="rv" id="v-weeks"></span>
+      </div>
+      <div class="field">
+        <label for="p-st">Target sell-through<span class="sub">How much of your stock should sell by the end</span></label>
+        <input type="range" id="p-st" min="0.5" max="0.95" step="0.05"><span class="rv" id="v-st"></span>
+      </div>
+      <div class="field">
+        <label for="p-min">Smallest order<span class="sub">Units per article, or skip it</span></label>
+        <input type="range" id="p-min" min="0" max="24" step="1"><span class="rv" id="v-min"></span>
+      </div>
+      <label class="field file" id="drop-articles" for="f-articles">
+        <input type="file" id="f-articles" accept=".csv,.txt,text/csv">
+        <span class="lab">Articles file (optional)<span class="sub" id="artinfo">Current stock, and new articles with no sales yet</span></span>
+        <span class="pick">Upload CSV</span>
+      </label>
+    </div>
+    <div class="help" style="margin-top:14px">
+      <span><b>Your sales file</b> needs <code>date</code> <code>article_id</code> <code>units</code>. Add <code>name</code> <code>category</code> <code>price</code> <code>cost</code> <code>stock</code> for better results. In Excel: File › Save as › CSV.</span>
+      <span><b>How it works.</b> A boosted-tree model (like XGBoost) forecasts each article from your past sales. New articles copy similar ones. Categories that sell through faster get more budget. Everything runs on your device.</span>
+    </div>
+  </details>
+</div>
+
+<script>
+
+"use strict";
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("salesapp2." + k); return v == null ? d : JSON.parse(v) } catch (e) { return d } },
+  set(k, v) { try { localStorage.setItem("salesapp2." + k, JSON.stringify(v)) } catch (e) {} },
+  del(k) { try { localStorage.removeItem("salesapp2." + k) } catch (e) {} },
+};
+const DAY = 86400000;
+const eur = (x, d = 0) => "€" + x.toLocaleString("en-GB", { minimumFractionDigits: d, maximumFractionDigits: d });
+const pct = x => Math.round(x * 100) + "%";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const sum = a => a.reduce((x, y) => x + y, 0);
+const mean = a => a.length ? sum(a) / a.length : 0;
+function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296 } }
+
+// ---------- sample: a sports shop, 48 articles, 26 weeks ----------
+function sampleData() {
+  const r = rng(11), T = 26;
+  const cats = [
+    ["Running shoes", 89, 169, .5, 9, s => 1 + .25 * Math.sin(s * 5)],
+    ["Sneakers", 69, 139, .48, 11, s => 1],
+    ["T-shirts", 19, 39, .38, 22, s => 1.35 - .7 * s],
+    ["Hoodies", 49, 89, .42, 10, s => .6 + .9 * s],
+    ["Jackets", 89, 219, .5, 5, s => .35 + 1.4 * s * s],
+    ["Accessories", 9, 35, .35, 16, s => 1],
+  ];
+  const brands = ["Northpeak", "Veloce", "Urban Tide", "Kiro"], colors = ["Black", "White", "Navy", "Grey", "Red", "Olive"];
+  const models = { "Running shoes": ["Sprint", "Glide", "Trail Pro", "Tempo", "Cloud", "Pace", "Ridge", "Nova"], "Sneakers": ["Court", "Classic 88", "Low Top", "Street", "Retro", "Canvas", "Skate", "Metro"],
+    "T-shirts": ["Logo Tee", "Tech Tee", "Oversized Tee", "Stripe Tee", "Basic Tee", "Graphic Tee", "Pocket Tee", "Dry Tee"], "Hoodies": ["Zip Hoodie", "Pullover", "Fleece", "Heavy Hoodie", "Crew Sweat", "Half Zip", "Tech Fleece", "Cropped Hoodie"],
+    "Jackets": ["Puffer", "Rain Shell", "Windbreaker", "Parka", "Softshell", "Bomber", "Gilet", "Down Jacket"], "Accessories": ["Cap", "Beanie", "Socks 3-pack", "Gym Bag", "Bottle", "Headband", "Gloves", "Backpack"] };
+  const articles = [], sales = [], lastMonday = Math.floor((Date.now() / DAY + 3) / 7) * 7 - 3 - 7;
+  let n = 0;
+  for (const [cat, pmin, pmax, costR, base, season] of cats) {
+    models[cat].forEach((m, i) => {
+      const isNew = i === 7 || (i === 6 && r() < .5);
+      const price = Math.round(pmin + r() * (pmax - pmin)) - .01, brand = brands[Math.floor(r() * 4)], color = colors[Math.floor(r() * 6)];
+      const pop = base * Math.exp((r() - .5) * 1.6) * (1 - .3 * (price - pmin) / (pmax - pmin)) * (brand === "Veloce" ? 1.3 : 1);
+      const trend = (r() - .45) * 1.2, launch = isNew ? T : r() < .75 ? 0 : 4 + Math.floor(r() * 12);
+      const id = "A" + String(++n).padStart(3, "0");
+      let last8 = 0;
+      for (let w = launch; w < T; w++) {
+        const s = w / (T - 1), mu = Math.max(0, pop * (1 + trend * s) * season(s) * (w - launch < 2 ? .6 : 1));
+        const u = Math.max(0, Math.round(mu * (.65 + .7 * r())));
+        if (u) sales.push({ w: lastMonday - (T - 1 - w) * 7, a: id, u });
+        if (w >= T - 8) last8 += u;
+      }
+      const stock = isNew ? 0 : Math.round(last8 / 8 * (.5 + r() * 6));
+      articles.push({ id, name: `${brand} ${m} ${color}`, category: cat, brand, color, price, cost: Math.round(price * costR * (0.9 + .2 * r()) * 100) / 100, stock });
+    });
+  }
+  return { articles, sales, sample: true };
+}
+
+// ---------- CSV ----------
+function readCsv(text) {
+  text = text.replace(/^﻿/, "");
+  const first = text.split("\n").find(l => l.trim()) || "";
+  const sep = [";", "\t", ","].reduce((b, c) => first.split(c).length > first.split(b).length ? c : b, ",");
+  const rows = []; let row = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++ } else q = false } else cell += ch }
+    else if (ch === '"') q = true;
+    else if (ch === sep) { row.push(cell.trim()); cell = "" }
+    else if (ch === "\n") { row.push(cell.trim()); cell = ""; if (row.some(Boolean)) rows.push(row); row = [] }
+    else if (ch !== "\r") cell += ch;
+  }
+  row.push(cell.trim()); if (row.some(Boolean)) rows.push(row);
+  return rows;
+}
+function num(s) {
+  if (s == null) return null; let t = String(s).replace(/[^0-9,.\-]/g, ""); if (!t) return null;
+  const lc = t.lastIndexOf(","), ld = t.lastIndexOf(".");
+  if (lc >= 0 && ld >= 0) t = lc > ld ? t.replace(/\./g, "").replace(",", ".") : t.replace(/,/g, ""); else if (lc >= 0) t = t.replace(",", ".");
+  const v = parseFloat(t); return isNaN(v) ? null : v;
+}
+function dayOf(s) {
+  s = String(s).trim(); let m;
+  if ((m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/))) return Math.floor(Date.UTC(+m[1], m[2] - 1, +m[3]) / DAY);
+  if ((m = s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})/))) return Math.floor(Date.UTC(+m[3], m[2] - 1, +m[1]) / DAY);
+  const n = parseFloat(s); if (n >= 20000 && n <= 80000) return Math.floor(n) - 25569;
+  return null;
+}
+const monday = d => Math.floor((d + 3) / 7) * 7 - 3;
+const key = s => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+function parseRows(rows, make) {
+  if (rows.length < 2) return { items: [], problems: ["The file has no rows under the column names."] };
+  const h = rows[0].map(key), items = [], problems = [];
+  rows.slice(1).forEach((cells, i) => {
+    const m = {}; h.forEach((k, j) => m[k] = cells[j]);
+    const get = (...ks) => { for (const k of ks) if (m[k] && m[k].trim()) return m[k].trim(); return null };
+    const r = make(get); if (typeof r === "string") problems.push(`row ${i + 2}: ${r}`); else items.push(r);
+  });
+  return { items, problems };
+}
+const importers = {
+  articles: get => {
+    const id = get("article_id", "id", "sku", "article", "item_id", "product_id", "code"); if (!id) return "no article_id";
+    const price = num(get("price", "retail_price", "sell_price", "rrp")); if (price == null) return "no price";
+    return { id, name: get("name", "article_name", "description", "product_name") || id, category: get("category", "product_group", "group", "department") || "Other",
+      price, cost: num(get("cost", "cost_price", "buy_price", "purchase_price")) ?? price * .5,
+      stock: Math.max(0, Math.round(num(get("stock", "stock_on_hand", "on_hand", "inventory")) || 0)), brand: get("brand", "label") || "", color: get("color", "colour") || "" };
+  },
+  sales: get => {
+    const ds = get("date", "week", "week_start", "sale_date", "day"); if (!ds) return "no date";
+    const d = dayOf(ds); if (d == null) return "date not understood";
+    const a = get("article_id", "id", "sku", "article", "item_id", "product_id", "code"); if (!a) return "no article_id";
+    const u = num(get("units", "quantity", "qty", "sold", "units_sold")); if (u == null) return "no units";
+    const price = num(get("price", "retail_price", "sell_price", "rrp")), stock = num(get("stock", "stock_on_hand", "on_hand", "inventory"));
+    return { w: monday(d), a, u, day: d, info: { name: get("name", "article_name", "description", "product_name"), category: get("category", "product_group", "group", "department"),
+      price, cost: num(get("cost", "cost_price", "buy_price", "purchase_price")), stock: stock == null ? null : Math.max(0, Math.round(stock)), brand: get("brand", "label"), color: get("color", "colour") } };
+  },
+};
+
+// ---------- gradient-boosted trees (squared loss, like XGBoost without the extras) ----------
+function tree(X, r, idx, depth, minLeaf) {
+  const leaf = { v: mean(idx.map(i => r[i])) };
+  if (depth === 0 || idx.length < 2 * minLeaf) return leaf;
+  let best = null; const tot = sum(idx.map(i => r[i])), n = idx.length;
+  for (let f = 0; f < X[0].length; f++) {
+    const s = [...idx].sort((a, b) => X[a][f] - X[b][f]); let left = 0;
+    for (let k = 0; k < n - 1; k++) {
+      left += r[s[k]];
+      if (k + 1 < minLeaf || n - k - 1 < minLeaf || X[s[k]][f] === X[s[k + 1]][f]) continue;
+      const gain = left * left / (k + 1) + (tot - left) ** 2 / (n - k - 1) - tot * tot / n;
+      if (!best || gain > best.gain) best = { gain, f, t: (X[s[k]][f] + X[s[k + 1]][f]) / 2 };
+    }
+  }
+  if (!best || best.gain < 1e-9) return leaf;
+  const L = idx.filter(i => X[i][best.f] <= best.t), R = idx.filter(i => X[i][best.f] > best.t);
+  return { f: best.f, t: best.t, l: tree(X, r, L, depth - 1, minLeaf), r: tree(X, r, R, depth - 1, minLeaf) };
+}
+const walk = (t, x) => t.v !== undefined ? t.v : walk(x[t.f] <= t.t ? t.l : t.r, x);
+// Starts from the plain 4-week average (feature 1) and learns corrections to it.
+function boost(X, y, rounds = 60, lr = .1, depth = 3) {
+  const F = X.map(x => x[1]), trees = [], idx = X.map((_, i) => i), minLeaf = Math.max(5, Math.floor(X.length / 40));
+  for (let m = 0; m < rounds; m++) {
+    const t = tree(X, y.map((v, i) => v - F[i]), idx, depth, minLeaf);
+    trees.push(t); for (let i = 0; i < X.length; i++) F[i] += lr * walk(t, X[i]);
+  }
+  return x => Math.max(0, x[1] + lr * sum(trees.map(t => walk(t, x))));
+}
+
+// ---------- the plan ----------
+function prepare(data) {
+  const weeks = [...new Set(data.sales.map(s => s.w))].sort((a, b) => a - b);
+  const T = weeks.length ? (weeks[weeks.length - 1] - weeks[0]) / 7 + 1 : 0, w0 = weeks[0] || 0;
+  const U = {}; for (const a of data.articles) U[a.id] = new Float64Array(T);
+  for (const s of data.sales) if (U[s.a]) U[s.a][(s.w - w0) / 7] += s.u;
+  const launch = {}; for (const a of data.articles) { const u = U[a.id]; let L = u.findIndex(v => v > 0); launch[a.id] = L < 0 ? T : L }
+  const byCat = {}; for (const a of data.articles) (byCat[a.category] = byCat[a.category] || []).push(a);
+  const medPrice = {}; for (const c in byCat) { const p = byCat[c].map(a => a.price).sort((x, y) => x - y); medPrice[c] = p[Math.floor(p.length / 2)] }
+  return { T, U, launch, byCat, medPrice, w0 };
+}
+function feats(P, a, t) {
+  const u = P.U[a.id], age = t - P.launch[a.id];
+  const avg = (from, to) => { const xs = []; for (let w = Math.max(from, P.launch[a.id]); w < to; w++) if (w >= 0) xs.push(u[w]); return xs.length ? mean(xs) : 0 };
+  const s1 = u[t - 1] || 0, s4 = avg(t - 4, t), s8 = avg(t - 8, t), p4 = avg(t - 8, t - 4);
+  let cat8 = 0, cat4 = 0; for (const b of P.byCat[a.category]) { for (let w = Math.max(0, t - 8); w < t; w++) { cat8 += P.U[b.id][w]; if (w >= t - 4) cat4 += P.U[b.id][w] } }
+  return [s1, s4, s8, (s4 + .5) / (p4 + .5), Math.min(age, 26), a.price, (a.price - a.cost) / a.price, a.price / P.medPrice[a.category], cat8 ? s8 * 8 / cat8 : 0, cat8 ? (cat4 / 4) / (cat8 / 8) : 1];
+}
+// Learns the average weekly units over the next H weeks (H = the time frame you plan for).
+function trainModel(data, P, H) {
+  const X = [], y = [];
+  for (let t = 8; t <= P.T - H; t++) for (const a of data.articles) {
+    if (t - P.launch[a.id] < 2) continue;
+    X.push(feats(P, a, t)); y.push(mean(Array.from(P.U[a.id].slice(t, t + H))));
+  }
+  return X.length >= 20 ? boost(X, y) : null;
+}
+// Honest check: hide the last H weeks, train on the rest, forecast them, compare with what really sold.
+function backtest(data, H) {
+  const P = prepare(data);
+  if (P.T - H < 10) return null;
+  const cut = P.T - H, w0 = P.w0;
+  const past = { articles: data.articles, sales: data.sales.filter(s => (s.w - w0) / 7 < cut) };
+  const Q = prepare(past); Q.T = cut;
+  for (const a of data.articles) { Q.U[a.id] = P.U[a.id].slice(0, cut); const L = Q.U[a.id].findIndex(v => v > 0); Q.launch[a.id] = L < 0 ? cut : L }
+  const model = trainModel(past, Q, H);
+  const e = { art: 0, naive: 0, act: 0 }, cat = {};
+  let fcAll = 0;
+  for (const a of data.articles) {
+    if (cut - Q.launch[a.id] < 2) continue;
+    const actual = sum(Array.from(P.U[a.id].slice(cut))), f = feats(Q, a, cut), fc = (model ? model(f) : f[1]) * H;
+    e.art += Math.abs(fc - actual); e.naive += Math.abs(f[1] * H - actual); e.act += actual; fcAll += fc;
+    const c = cat[a.category] = cat[a.category] || [0, 0]; c[0] += fc; c[1] += actual;
+  }
+  if (!e.act) return null;
+  return { article: e.art / e.act, naive: e.naive / e.act, category: sum(Object.values(cat).map(c => Math.abs(c[0] - c[1]))) / e.act, total: Math.abs(fcAll - e.act) / e.act, weeks: H };
+}
+function plan(data, prm) {
+  const P = prepare(data), H = Math.min(prm.weeks, Math.max(1, P.T - 10)), model = trainModel(data, P, H), trained = model && { model };
+  const rows = data.articles.map(a => {
+    const u = P.U[a.id], hasHist = P.launch[a.id] < P.T;
+    let s8 = 0; for (let w = Math.max(0, P.T - 8); w < P.T; w++) s8 += u[w];
+    const rate = !hasHist ? null : trained && P.T - P.launch[a.id] >= 2 ? trained.model(feats(P, a, P.T)) : s8 / Math.max(1, Math.min(8, P.T - P.launch[a.id]));
+    return { a, hasHist, rate, sold8: s8, st: s8 + a.stock > 0 ? s8 / (s8 + a.stock) : null, similar: [] };
+  });
+  // new articles: borrow from the 3 most similar articles with history
+  const known = rows.filter(r => r.hasHist);
+  for (const r of rows.filter(r => !r.hasHist)) {
+    const scored = known.map(k => ({ k, s: (k.a.category === r.a.category ? .5 : 0) + (k.a.brand && k.a.brand === r.a.brand ? .2 : 0) + (k.a.color && k.a.color === r.a.color ? .1 : 0) + .2 * Math.max(0, 1 - Math.abs(Math.log(r.a.price / k.a.price)) / .5) }))
+      .sort((x, y) => y.s - x.s).slice(0, 3).filter(x => x.s > 0);
+    r.similar = scored.map(x => x.k.a.name);
+    r.rate = scored.length ? .8 * sum(scored.map(x => x.s * x.k.rate)) / sum(scored.map(x => x.s)) : 0;
+  }
+  // top sellers: A = top 20% of forecast revenue, C = bottom half
+  const byRev = [...rows].sort((x, y) => y.rate * y.a.price - x.rate * x.a.price);
+  byRev.forEach((r, i) => r.cls = i < Math.ceil(rows.length * .2) ? "A" : i < Math.ceil(rows.length * .5) ? "B" : "C");
+  for (const r of rows) {
+    r.demand = r.rate * prm.weeks;
+    r.need = Math.max(0, Math.ceil(r.demand / prm.st - r.a.stock));
+  }
+  // euros per category
+  const cats = Object.keys(P.byCat).map(name => {
+    const rs = rows.filter(r => r.a.category === name), sold = sum(rs.map(r => r.sold8)), stock = sum(rs.map(r => r.a.stock));
+    return { name, rows: rs, st: sold + stock > 0 ? sold / (sold + stock) : null, needEur: sum(rs.map(r => r.need * r.a.cost)) };
+  });
+  const allSold = sum(rows.map(r => r.sold8)), allStock = sum(rows.map(r => r.a.stock)), stAll = allSold + allStock ? allSold / (allSold + allStock) : .5;
+  cats.forEach(c => c.w = c.needEur * Math.sqrt((c.st ?? stAll) / (stAll || 1)));
+  const W = sum(cats.map(c => c.w)) || 1;
+  cats.forEach(c => c.budget = Math.min(prm.budget * c.w / W, c.needEur * 1.25));
+  // units per article inside each category
+  const boostOf = { A: 1.25, B: 1, C: .8 };
+  for (const c of cats) {
+    let pool = c.rows.filter(r => r.need > 0);
+    for (let pass = 0; pass < 2; pass++) {
+      const tw = sum(pool.map(r => r.need * r.a.cost * boostOf[r.cls])) || 1;
+      for (const r of c.rows) r.buy = 0;
+      for (const r of pool) r.buy = Math.min(Math.floor(c.budget * r.need * r.a.cost * boostOf[r.cls] / tw / r.a.cost), Math.ceil(r.need * 1.5));
+      const small = pool.filter(r => r.buy < prm.min);
+      if (!small.length) break;
+      pool = pool.filter(r => r.buy >= prm.min);
+    }
+    for (const r of c.rows) { if (r.buy < prm.min) r.buy = 0; r.buyEur = r.buy * r.a.cost }
+    c.spent = sum(c.rows.map(r => r.buyEur)); c.units = sum(c.rows.map(r => r.buy));
+  }
+  for (const r of rows) { r.expSold = Math.min(r.demand, r.a.stock + r.buy) }
+  const spent = sum(cats.map(c => c.spent)), units = sum(rows.map(r => r.buy)), avail = sum(rows.map(r => r.a.stock + r.buy)), sold = sum(rows.map(r => r.expSold));
+  return { P, rows, need: sum(cats.map(c => c.needEur)), cats: cats.sort((x, y) => y.spent - x.spent), acc: backtest(data, H), trained: !!trained, horizon: H, spent, units, expST: avail ? sold / avail : 0, revenue: sum(rows.map(r => r.expSold * r.a.price)), margin: sum(rows.map(r => r.expSold * (r.a.price - r.a.cost))) };
+}
+
+// Article details can come from the sales file itself; an articles file adds stock and new articles.
+function articlesFromSales(sales) {
+  const m = {};
+  for (const s of [...sales].sort((x, y) => x.day - y.day)) {
+    const a = m[s.a] = m[s.a] || { id: s.a, name: s.a, category: "Other", price: null, cost: null, stock: 0, brand: "", color: "" }, i = s.info || {};
+    for (const k of ["name", "category", "brand", "color"]) if (i[k]) a[k] = i[k];
+    for (const k of ["price", "cost", "stock"]) if (i[k] != null) a[k] = i[k];
+  }
+  return Object.values(m);
+}
+function mergeArticles(fromSales, fromFile) {
+  const m = {}; for (const a of fromSales) m[a.id] = { ...a };
+  for (const a of fromFile || []) m[a.id] = Object.assign(m[a.id] || {}, Object.fromEntries(Object.entries(a).filter(([, v]) => v !== "" && v != null)));
+  const out = Object.values(m); let noPrice = 0;
+  for (const a of out) { if (a.price == null) { a.price = 10; noPrice++ } if (a.cost == null) a.cost = Math.round(a.price * 50) / 100 }
+  return { articles: out, noPrice };
+}
+// ---------- state ----------
+let data = store.get("data", null) || sampleData();
+let prm = Object.assign({ budget: 50000, weeks: 4, st: .8, min: 3 }, store.get("prm", {}));
+let result, open = "__first", trustOpen = false;
+const $ = id => document.getElementById(id);
+
+// ---------- rendering ----------
+function renderData() {
+  const weeks = new Set(data.sales.map(s => s.w)).size;
+  $("salesinfo").textContent = data.sample ? `Showing a sample shop · ${data.articles.length} articles, ${weeks} weeks` : `${data.articles.length} articles, ${weeks} weeks loaded`;
+  $("artinfo").textContent = !data.sample && data.fileArticles ? `${data.fileArticles.length} articles loaded` : "Current stock, and new articles with no sales yet";
+  $("use-sample").hidden = !!data.sample;
+}
+function renderParams() {
+  $("p-budget").value = Math.round(prm.budget).toLocaleString("en-GB");
+  for (const b of $("presets").children) b.setAttribute("aria-pressed", String(+b.dataset.w === prm.weeks));
+  $("p-weeks").value = prm.weeks; $("v-weeks").textContent = prm.weeks + " wk";
+  $("p-st").value = prm.st; $("v-st").textContent = pct(prm.st);
+  $("p-min").value = prm.min; $("v-min").textContent = prm.min;
+}
+function recompute() { result = plan(data, prm); render() }
+function render() {
+  const R = result, frame = prm.weeks === 2 ? "the next 2 weeks" : prm.weeks === 4 ? "the next month" : prm.weeks === 13 ? "the season (13 weeks)" : `the next ${prm.weeks} weeks`;
+  $("a-eyebrow").textContent = `Your plan for ${frame}`;
+  $("a-head").innerHTML = `Buy <em>${R.units.toLocaleString("en-GB")}</em> units for ${eur(R.spent)}`;
+  const left = prm.budget - R.spent;
+  $("a-sub").textContent = `Expected sales ${eur(R.revenue)}. ` + (left > 1 ? `${eur(left)} of your budget is not needed, because you already have enough stock.` : `This uses your whole budget.`);
+  const a = R.acc;
+  $("trust").innerHTML = a ? `<b>✓ ${pct(Math.max(0, 1 - a.total))} accurate</b> <span>on your past sales · <u>${trustOpen ? "Hide" : "Details"}</u></span>`
+    : `<span>Not enough history yet to check this time frame · <u>${trustOpen ? "Hide" : "Details"}</u></span>`;
+  $("trust").setAttribute("aria-expanded", String(trustOpen));
+  $("trustbox").hidden = !trustOpen;
+  $("trustbox").innerHTML = a
+    ? `<span>We hid your last ${a.weeks} weeks of sales, forecast them, and compared with what really sold.</span>
+       <div><span>Whole plan</span><b>${pct(Math.max(0, 1 - a.total))} accurate</b></div>
+       <div><span>Per category</span><b>${pct(Math.max(0, 1 - a.category))}</b></div>
+       <div><span>Per article</span><b>${pct(Math.max(0, 1 - a.article))}</b></div>
+       <span>Single articles always swing more from week to week. A full year of sales makes every number better.</span>`
+    : `<span>The app needs about 10 more weeks of sales than the time frame to test itself. Try a shorter time frame or load more history.</span>`;
+  if (open === "__first") open = R.cats[0] ? R.cats[0].name : null;
+  const max = Math.max(...R.cats.map(c => c.spent), 1);
+  $("cats").innerHTML = R.cats.filter(c => c.spent > 0 || c.rows.length).map(c => {
+    const isOpen = open === c.name, arts = c.rows.filter(r => r.buy > 0).sort((x, y) => y.buyEur - x.buyEur);
+    const rest = c.rows.length - arts.length;
+    return `<div class="cat" data-open="${isOpen}">
+      <button data-cat="${esc(c.name)}" aria-expanded="${isOpen}">
+        <span class="top"><span class="name">${esc(c.name)}</span><span class="eur num">${eur(c.spent)}</span><span class="chev" aria-hidden="true">›</span></span>
+        <span class="track"><i style="width:${c.spent / max * 100}%"></i></span>
+        <span class="meta num">${c.units.toLocaleString("en-GB")} units · ${arts.length} article${arts.length === 1 ? "" : "s"}</span>
+      </button>
+      ${isOpen ? `<div class="arts">${arts.map(r => `<div class="art"><span class="an">${esc(r.a.name)}${!r.hasHist ? `<span class="tag new">New</span>` : r.cls === "A" ? `<span class="tag">Top seller</span>` : ""}</span><span class="u num">${r.buy} units</span><span class="e num">${eur(r.buyEur)}</span></div>`).join("")}
+        ${rest ? `<div class="art none"><span class="an">${rest} other article${rest === 1 ? "" : "s"}: enough stock already</span><span></span><span></span></div>` : ""}</div>` : ""}
+    </div>`;
+  }).join("");
+}
+function planCsv() {
+  const out = [["article_id", "name", "category", "buy_units", "buy_eur_at_cost"]];
+  for (const r of result.rows) if (r.buy > 0) out.push([r.a.id, r.a.name, r.a.category, r.buy, r.buyEur.toFixed(2)]);
+  return out.map(r => r.map(v => /[",;\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v).join(",")).join("\n");
+}
+
+// ---------- events ----------
+let t0; const later = fn => { clearTimeout(t0); t0 = setTimeout(fn, 140) };
+function setPrm(k, v) { prm[k] = v; store.set("prm", prm); renderParams(); later(recompute) }
+$("p-budget").addEventListener("input", e => { const v = num(e.target.value.replace(/[.,](?=\d{3}\b)/g, "")); if (v != null && v >= 0) { prm.budget = v; store.set("prm", prm); later(recompute) } });
+$("p-budget").addEventListener("blur", renderParams);
+$("presets").addEventListener("click", e => { const b = e.target.closest("[data-w]"); if (b) setPrm("weeks", +b.dataset.w) });
+$("p-weeks").addEventListener("input", e => setPrm("weeks", +e.target.value));
+$("p-st").addEventListener("input", e => setPrm("st", +e.target.value));
+$("p-min").addEventListener("input", e => setPrm("min", +e.target.value));
+$("cats").addEventListener("click", e => { const b = e.target.closest("[data-cat]"); if (!b) return; open = open === b.dataset.cat ? null : b.dataset.cat; render() });
+$("trust").addEventListener("click", () => { trustOpen = !trustOpen; render() });
+$("copy").addEventListener("click", () => {
+  const text = planCsv(), m = $("copymsg");
+  const fallback = () => { const pre = $("csv"); pre.textContent = text; pre.hidden = false; const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); m.textContent = "Selected below. Copy it with your keyboard or a long press."; m.hidden = false };
+  try { navigator.clipboard.writeText(text).then(() => { m.textContent = "Copied. Paste it into Excel."; m.hidden = false }, fallback) } catch (e) { fallback() }
+});
+$("use-sample").addEventListener("click", () => { store.del("data"); data = sampleData(); open = null; renderData(); recompute(); showMsg("Showing the sample shop again.") });
+function showMsg(t, bad) { const m = $("loadmsg"); m.textContent = t; m.className = "msg" + (bad ? " bad" : ""); m.hidden = false }
+function load(kind, file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    if (/\.xlsx?$/i.test(file.name)) return showMsg("Please save the file as CSV first (in Excel: File › Save as › CSV).", true);
+    const r = parseRows(readCsv(String(reader.result)), importers[kind]);
+    if (!r.items.length) return showMsg(`Nothing loaded from ${file.name}: ${r.problems[0] || "check the column names"}. It needs date, article_id and units.`, true);
+    let salesArticles = data.sample ? [] : data.salesArticles || [], fileArticles = data.sample ? null : data.fileArticles || null, sales = data.sample ? [] : data.sales;
+    if (kind === "sales") { salesArticles = articlesFromSales(r.items); sales = r.items.map(({ w, a, u }) => ({ w, a, u })) }
+    else fileArticles = r.items;
+    const merged = mergeArticles(salesArticles, fileArticles);
+    data = { sales, salesArticles, fileArticles, articles: merged.articles, sample: false };
+    store.set("data", data); open = null;
+    showMsg(`Loaded ${file.name}.` + (r.problems.length ? ` Skipped ${r.problems.length} rows (${r.problems[0]}).` : "") +
+      (!sales.length ? " Now upload your sales file." : "") +
+      (merged.noPrice ? ` ${merged.noPrice} articles have no price, so they count as €10 each.` : ""));
+    renderData(); recompute();
+  };
+  reader.readAsText(file);
+}
+for (const kind of ["articles", "sales"]) {
+  const input = $("f-" + kind), zone = $("drop-" + kind);
+  input.addEventListener("change", () => { if (input.files[0]) load(kind, input.files[0]); input.value = "" });
+  zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("over") });
+  zone.addEventListener("dragleave", () => zone.classList.remove("over"));
+  zone.addEventListener("drop", e => { e.preventDefault(); zone.classList.remove("over"); if (e.dataTransfer.files[0]) load(kind, e.dataTransfer.files[0]) });
+}
+
+renderData(); renderParams(); recompute();
+</script>
