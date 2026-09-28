@@ -1,0 +1,50 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Test the ranking and stock logic
+        run: ./gradlew :core:test --no-daemon
+
+      - name: Build the APK
+        run: ./gradlew :app:assembleRelease --no-daemon
+
+      - name: Name the APK
+        run: cp app/build/outputs/apk/release/app-release.apk SalesApp.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SalesApp-apk
+          path: SalesApp.apk
+
+      # A download link that always has the newest APK:
+      # https://github.com/<owner>/<repo>/releases/download/latest-apk/SalesApp.apk
+      - name: Publish to the "latest-apk" release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-apk
+          name: Sales App (latest build)
+          prerelease: false
+          make_latest: true
+          body: |
+            Newest test build of Sales App, built from `${{ github.ref_name }}` (build ${{ github.run_number }}).
+            On your Android phone: download SalesApp.apk, open it, and allow installing from this source if asked.
+          files: SalesApp.apk
