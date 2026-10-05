@@ -36,12 +36,12 @@ PRIVATE BY DESIGN
 
 **Category:** Business. **Tags:** sales, planning, retail, wholesale, budget.
 **Contact e-mail:** set in Play Console (required). **Website:** optional.
-**Privacy policy URL:** host `salesplan/web/privacy.html`. Any static host works, e.g. GitHub Pages.
+**Privacy policy URL:** host `web/privacy.html`. Any static host works, e.g. GitHub Pages.
 Enter its URL in Play Console.
 
 ## Graphics
 
-- App icon 512×512: `salesplan/web/icon-512.png`
+- App icon 512×512: `web/icon-512.png`
 - Feature graphic 1024×500: make it from the app colours (#3346D3) with the logo and the line
   "Budget → money and units, per article"
 - Phone screenshots (at least 2, 1080×1920 or similar): welcome, result, budget split, articles with
@@ -70,7 +70,7 @@ storage, and Android backup is turned off for it.
 
 ## Release steps
 
-1. Make the upload key and add the repository secrets (see `salesplan/README.md`).
+1. Make the upload key and add the repository secrets (see `README.md`).
 2. Push to `main`. The "SalesPlan" workflow builds `salesplan.aab` and attaches it to the
    `salesplan-preview` release.
 3. Play Console:
@@ -84,7 +84,7 @@ storage, and Android backup is turned off for it.
 
 ## Checklist before each release
 
-- [ ] `node --test salesplan/tests/*.test.mjs` passes
+- [ ] `node --test tests/*.test.mjs` passes
 - [ ] The workflow's emulator check is green
 - [ ] Version code goes up automatically (workflow run number)
 - [ ] If any data flow changed: update `web/privacy.html` and this data safety section

@@ -52,7 +52,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Shows the bundled web app (salesplan/web) in a locked-down WebView.
+ * Shows the bundled web app (web/) in a locked-down WebView.
  * - Files are served from the APK through WebViewAssetLoader on a secure https origin.
  * - Any other address is blocked; the app has no internet permission at all.
  * - The page can ask for exactly three things through a message channel that only our own

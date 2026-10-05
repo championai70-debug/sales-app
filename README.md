@@ -105,15 +105,15 @@ The engine lives in `web/js/engine.js` and has no DOM code; the same file runs i
 ## Run and test
 
 ```bash
-node --test salesplan/tests/*.test.mjs          # unit tests (Node 22, no install)
-python3 -m http.server 8765 -d salesplan/web    # then open http://localhost:8765
+node --test tests/*.test.mjs          # unit tests (Node 22, no install)
+python3 -m http.server 8765 -d web    # then open http://localhost:8765
 ```
 
 The app needs a secure context (https or localhost) for encryption.
 
 ## Android
 
-GitHub Actions (`.github/workflows/salesplan.yml`) runs on every push that changes `salesplan/`:
+GitHub Actions (`.github/workflows/salesplan.yml`) runs on every push:
 1. Runs the tests.
 2. Builds a signed APK and a Play Store bundle (AAB).
 3. Runs Android lint.

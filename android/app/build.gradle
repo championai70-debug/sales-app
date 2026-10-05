@@ -1,4 +1,4 @@
-// SalesPlan for Android: the web app in salesplan/web, bundled into the APK and shown in a
+// SalesPlan for Android: the web app in web/, bundled into the APK and shown in a
 // locked-down WebView. Works fully offline; the app has no internet permission.
 // Built and signed by .github/workflows/salesplan-android.yml.
 plugins {
